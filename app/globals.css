@@ -1,26 +1,105 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* Dark Theme (Default) */
+:root,
+[data-theme="dark"] {
+  --bg-primary: #0a0a0f;
+  --bg-secondary: rgba(255, 255, 255, 0.05);
+  --bg-tertiary: rgba(255, 255, 255, 0.1);
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.9);
+  --text-tertiary: rgba(255, 255, 255, 0.7);
+  --text-quaternary: rgba(255, 255, 255, 0.5);
+  --border-primary: rgba(255, 255, 255, 0.1);
+  --border-secondary: rgba(255, 255, 255, 0.2);
+  --gradient-orb-1: rgba(0, 27, 183, 0.3);
+  --gradient-orb-2: rgba(0, 70, 255, 0.2);
+  --gradient-orb-3: rgba(255, 128, 64, 0.25);
+  --gradient-orb-4: rgba(0, 70, 255, 0.15);
+  --gradient-orb-5: rgba(0, 70, 255, 0.1);
+}
+
+/* Light Theme */
+[data-theme="light"] {
+  --bg-primary: #f5f1dc;
+  --bg-secondary: rgba(255, 255, 255, 0.7);
+  --bg-tertiary: rgba(255, 255, 255, 0.9);
+  --text-primary: #0a0a0f;
+  --text-secondary: rgba(10, 10, 15, 0.9);
+  --text-tertiary: rgba(10, 10, 15, 0.7);
+  --text-quaternary: rgba(10, 10, 15, 0.5);
+  --border-primary: rgba(0, 0, 0, 0.1);
+  --border-secondary: rgba(0, 0, 0, 0.2);
+  --gradient-orb-1: rgba(0, 27, 183, 0.15);
+  --gradient-orb-2: rgba(0, 70, 255, 0.1);
+  --gradient-orb-3: rgba(255, 128, 64, 0.12);
+  --gradient-orb-4: rgba(0, 70, 255, 0.08);
+  --gradient-orb-5: rgba(0, 70, 255, 0.05);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-background: var(--bg-primary);
+  --color-foreground: var(--text-primary);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* Smooth theme transition - only apply during theme change */
+/* Use a longer duration (2s) for a slow, dimming bulb effect */
+html.theme-transition,
+html.theme-transition *,
+html.theme-transition *::before,
+html.theme-transition *::after {
+  transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, filter, backdrop-filter, background-image, background !important;
+  transition-duration: 2000ms !important;
+  transition-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
+}
+
+/* Ensure body and root element transition smoothly */
+html.theme-transition {
+  transition: background-color 2000ms cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
+}
+
+html.theme-transition body {
+  transition: background-color 2000ms cubic-bezier(0.25, 0.46, 0.45, 0.94),
+              color 2000ms cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
+}
+
+/* Ensure all style attributes with CSS variables also transition */
+html.theme-transition [style*="--"] {
+  transition: all 2000ms cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
+}
+
+/* Input placeholder colors with transitions */
+[data-theme="dark"] input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+[data-theme="light"] input::placeholder {
+  color: rgba(10, 10, 15, 0.5);
+}
+
+html.theme-transition input::placeholder {
+  transition: color 2000ms cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+.animate-pulse {
+  animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
