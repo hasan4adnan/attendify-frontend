@@ -2,12 +2,17 @@
 
 import { useState } from 'react';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
+import { useRouter } from 'next/navigation';
+import AnimatedText from '../components/AnimatedText';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [focused, setFocused] = useState<'email' | 'password' | null>(null);
   const { theme } = useTheme();
+  const { t, isTransitioning } = useLanguage();
+  const router = useRouter();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,7 +66,9 @@ export default function LoginPage() {
             className="text-xl leading-relaxed"
             style={{ color: 'var(--text-tertiary)' }}
           >
-            Streamline your attendance management with our powerful, intuitive platform.
+            <AnimatedText speed={40}>
+              {t.branding.tagline}
+            </AnimatedText>
           </p>
           <div className="flex gap-4 pt-4">
             <div 
@@ -81,7 +88,9 @@ export default function LoginPage() {
                 className="text-sm"
                 style={{ color: 'var(--text-quaternary)' }}
               >
-                Uptime
+                <AnimatedText speed={50}>
+                  {t.branding.uptime}
+                </AnimatedText>
               </div>
             </div>
             <div 
@@ -101,7 +110,9 @@ export default function LoginPage() {
                 className="text-sm"
                 style={{ color: 'var(--text-quaternary)' }}
               >
-                Users
+                <AnimatedText speed={50}>
+                  {t.branding.users}
+                </AnimatedText>
               </div>
             </div>
           </div>
@@ -134,12 +145,16 @@ export default function LoginPage() {
                 className="text-3xl font-bold"
                 style={{ color: 'var(--text-primary)' }}
               >
-                Welcome back
+                <AnimatedText speed={35}>
+                  {t.login.title}
+                </AnimatedText>
               </h2>
               <p 
                 style={{ color: 'var(--text-tertiary)' }}
               >
-                Sign in to continue to Attendify
+                <AnimatedText speed={40}>
+                  {t.login.subtitle}
+                </AnimatedText>
               </p>
             </div>
 
@@ -151,7 +166,9 @@ export default function LoginPage() {
                   className="block text-sm font-medium"
                   style={{ color: 'var(--text-secondary)' }}
                 >
-                  Email address
+                  <AnimatedText speed={50}>
+                    {t.login.emailLabel}
+                  </AnimatedText>
                 </label>
                 <div className="relative">
                   <input
@@ -168,7 +185,7 @@ export default function LoginPage() {
                       borderColor: focused === 'email' ? '#0046FF' : 'var(--border-primary)',
                       color: 'var(--text-primary)',
                     }}
-                    placeholder="name@company.com"
+                    placeholder={t.login.emailPlaceholder}
                   />
                   {focused === 'email' && (
                     <div 
@@ -189,13 +206,17 @@ export default function LoginPage() {
                     className="block text-sm font-medium"
                     style={{ color: 'var(--text-secondary)' }}
                   >
-                    Password
+                    <AnimatedText speed={50}>
+                      {t.login.passwordLabel}
+                    </AnimatedText>
                   </label>
                   <a
                     href="#"
                     className="text-sm text-[#0046FF] hover:text-[#FF8040] font-medium transition-colors duration-200"
                   >
-                    Forgot?
+                    <AnimatedText speed={50}>
+                      {t.login.forgotPassword}
+                    </AnimatedText>
                   </a>
                 </div>
                 <div className="relative">
@@ -213,7 +234,7 @@ export default function LoginPage() {
                       borderColor: focused === 'password' ? '#0046FF' : 'var(--border-primary)',
                       color: 'var(--text-primary)',
                     }}
-                    placeholder="••••••••"
+                    placeholder={t.login.passwordPlaceholder}
                   />
                   {focused === 'password' && (
                     <div 
@@ -232,7 +253,9 @@ export default function LoginPage() {
                 className="w-full py-4 px-6 bg-gradient-to-r from-[#0046FF] to-[#001BB7] text-white font-semibold rounded-xl shadow-lg shadow-[#0046FF]/25 hover:shadow-[#0046FF]/40 focus:outline-none focus:ring-2 focus:ring-[#0046FF] focus:ring-offset-2 focus:ring-offset-transparent transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] relative overflow-hidden group hover:from-[#0055FF] hover:to-[#0025CC]"
               >
                 <span className="relative z-10 flex items-center justify-center gap-2">
-                  Sign in
+                  <AnimatedText speed={40}>
+                    {t.login.signIn}
+                  </AnimatedText>
                   <svg
                     className="w-5 h-5 transform group-hover:translate-x-1 transition-transform duration-300"
                     fill="none"
@@ -261,13 +284,16 @@ export default function LoginPage() {
                     color: 'var(--text-quaternary)' 
                   }}
                 >
-                  New to Attendify?
+                  <AnimatedText speed={40}>
+                    {t.login.newToAttendify}
+                  </AnimatedText>
                 </span>
               </div>
             </div>
 
             {/* Sign Up Link */}
             <button 
+              onClick={() => router.push('/signup')}
               className="w-full py-4 px-6 border font-semibold rounded-xl hover:border-opacity-30 focus:outline-none focus:ring-2 focus:ring-white/50 transition-all duration-300"
               style={{
                 backgroundColor: 'var(--bg-secondary)',
@@ -283,7 +309,9 @@ export default function LoginPage() {
                 e.currentTarget.style.borderColor = 'var(--border-primary)';
               }}
             >
-              Create an account
+              <AnimatedText speed={40}>
+                {t.login.createAccount}
+              </AnimatedText>
             </button>
           </div>
 
@@ -292,14 +320,33 @@ export default function LoginPage() {
             className="text-center text-sm mt-6"
             style={{ color: 'var(--text-quaternary)' }}
           >
-            By signing in, you agree to our{' '}
+            <span>
+              <AnimatedText speed={35}>
+                {t.login.termsAndPrivacy}
+              </AnimatedText>
+            </span>
             <a href="#" className="text-[#0046FF] hover:text-[#FF8040] transition-colors">
-              Terms of Service
-            </a>{' '}
-            and{' '}
-            <a href="#" className="text-[#0046FF] hover:text-[#FF8040] transition-colors">
-              Privacy Policy
+              <AnimatedText speed={40}>
+                {t.login.termsOfService}
+              </AnimatedText>
             </a>
+            <span>
+              <AnimatedText speed={35}>
+                {t.login.and}
+              </AnimatedText>
+            </span>
+            <a href="#" className="text-[#0046FF] hover:text-[#FF8040] transition-colors">
+              <AnimatedText speed={40}>
+                {t.login.privacyPolicy}
+              </AnimatedText>
+            </a>
+            {t.login.agreeToTerms && (
+              <span>
+                <AnimatedText speed={35}>
+                  {t.login.agreeToTerms}
+                </AnimatedText>
+              </span>
+            )}
           </p>
         </div>
       </div>
