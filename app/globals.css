@@ -46,28 +46,32 @@
 
 /* Smooth theme transition - only apply during theme change */
 /* Use a longer duration (2s) for a slow, dimming bulb effect */
+
 html.theme-transition,
 html.theme-transition *,
 html.theme-transition *::before,
 html.theme-transition *::after {
   transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, filter, backdrop-filter, background-image, background !important;
-  transition-duration: 2000ms !important;
+  transition-duration: 600ms !important;
   transition-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
 }
 
 /* Ensure body and root element transition smoothly */
+
 html.theme-transition {
-  transition: background-color 2000ms cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
+  transition: background-color 600ms cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
 }
 
+
 html.theme-transition body {
-  transition: background-color 2000ms cubic-bezier(0.25, 0.46, 0.45, 0.94),
-              color 2000ms cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
+  transition: background-color 600ms cubic-bezier(0.25, 0.46, 0.45, 0.94),
+              color 600ms cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
 }
 
 /* Ensure all style attributes with CSS variables also transition */
+
 html.theme-transition [style*="--"] {
-  transition: all 2000ms cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
+  transition: all 600ms cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
 }
 
 /* Input placeholder colors with transitions */
@@ -79,8 +83,9 @@ html.theme-transition [style*="--"] {
   color: rgba(10, 10, 15, 0.5);
 }
 
+
 html.theme-transition input::placeholder {
-  transition: color 2000ms cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
+  transition: color 600ms cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
 }
 
 body {
