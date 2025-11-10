@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import TermsPrivacyModal from '../components/TermsPrivacyModal';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useRouter } from 'next/navigation';
@@ -13,6 +14,16 @@ export default function LoginPage() {
   const { theme } = useTheme();
   const { t, isTransitioning } = useLanguage();
   const router = useRouter();
+
+    // Modal state
+    const [modalOpen, setModalOpen] = useState(false);
+    const [modalType, setModalType] = useState<'terms' | 'privacy'>('terms');
+
+    const openModal = (type: 'terms' | 'privacy') => {
+      setModalType(type);
+      setModalOpen(true);
+    };
+    const closeModal = () => setModalOpen(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -316,7 +327,7 @@ export default function LoginPage() {
           </div>
 
           {/* Footer */}
-          <p 
+          <div
             className="text-center text-sm mt-6"
             style={{ color: 'var(--text-quaternary)' }}
           >
@@ -325,21 +336,31 @@ export default function LoginPage() {
                 {t.login.termsAndPrivacy}
               </AnimatedText>
             </span>
-            <a href="#" className="text-[#0046FF] hover:text-[#FF8040] transition-colors">
+            <button
+              type="button"
+              className="text-[#0046FF] hover:text-[#FF8040] transition-colors underline font-semibold tracking-wide mx-1"
+              style={{ fontFamily: 'Inter, Segoe UI, Arial, sans-serif', fontSize: '1.05em', letterSpacing: '0.01em' }}
+              onClick={() => openModal('terms')}
+            >
               <AnimatedText speed={40}>
                 {t.login.termsOfService}
               </AnimatedText>
-            </a>
+            </button>
             <span>
               <AnimatedText speed={35}>
                 {t.login.and}
               </AnimatedText>
             </span>
-            <a href="#" className="text-[#0046FF] hover:text-[#FF8040] transition-colors">
+            <button
+              type="button"
+              className="text-[#0046FF] hover:text-[#FF8040] transition-colors underline font-semibold tracking-wide mx-1"
+              style={{ fontFamily: 'Inter, Segoe UI, Arial, sans-serif', fontSize: '1.05em', letterSpacing: '0.01em' }}
+              onClick={() => openModal('privacy')}
+            >
               <AnimatedText speed={40}>
                 {t.login.privacyPolicy}
               </AnimatedText>
-            </a>
+            </button>
             {t.login.agreeToTerms && (
               <span>
                 <AnimatedText speed={35}>
@@ -347,7 +368,8 @@ export default function LoginPage() {
                 </AnimatedText>
               </span>
             )}
-          </p>
+            <TermsPrivacyModal open={modalOpen} onClose={closeModal} type={modalType} />
+          </div>
         </div>
       </div>
     </div>
