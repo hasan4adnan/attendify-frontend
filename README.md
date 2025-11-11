@@ -38,3 +38,5 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 Node 20’yi aktif et: nvm use 20
 veya kalıcı yapmak için: nvm alias default 20
 Node.js 20 yükle: nvm install 20
+
+Little try for jira
