@@ -35,7 +35,7 @@ The easiest way to deploy your Next.js app is to use the [Vercel Platform](https
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
 
-Node 20’yi aktif et: nvm use 20
+Mutlaka Node 20’yi aktif et: nvm use 20
 veya kalıcı yapmak için: nvm alias default 20
 Node.js 20 yükle: nvm install 20
 
