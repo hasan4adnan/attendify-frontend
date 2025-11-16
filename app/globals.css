@@ -3,7 +3,7 @@
 /* Dark Theme (Default) */
 :root,
 [data-theme="dark"] {
-  --bg-primary: #0a0a0f;
+  --bg-primary: #060128;
   --bg-secondary: rgba(255, 255, 255, 0.05);
   --bg-tertiary: rgba(255, 255, 255, 0.1);
   --text-primary: #ffffff;
