@@ -80,29 +80,6 @@ export default function DashboardPage() {
         willChange: 'opacity'
       }}
     >
-      {/* Animated Gradient Background */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div 
-          className="absolute -top-1/2 -left-1/4 w-full h-full bg-gradient-to-br rounded-full blur-[120px] animate-pulse"
-          style={{
-            background: `linear-gradient(to bottom right, var(--gradient-orb-1), var(--gradient-orb-2), transparent)`,
-          }}
-        />
-        <div 
-          className="absolute -bottom-1/2 -right-1/4 w-full h-full bg-gradient-to-tl rounded-full blur-[120px] animate-pulse"
-          style={{
-            background: `linear-gradient(to top left, var(--gradient-orb-3), var(--gradient-orb-4), transparent)`,
-            animationDelay: '1s'
-          }}
-        />
-        <div 
-          className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full blur-[100px] animate-pulse"
-          style={{
-            backgroundColor: 'var(--gradient-orb-5)',
-            animationDelay: '2s'
-          }}
-        />
-      </div>
 
       {/* Mobile Menu Overlay */}
       {mobileMenuOpen && (
@@ -194,6 +171,8 @@ export default function DashboardPage() {
                 onClick={() => {
                   if (item.key === 'logout') {
                     router.push('/');
+                  } else if (item.key === 'students') {
+                    router.push('/students');
                   }
                   if (window.innerWidth < 1024) {
                     setMobileMenuOpen(false);
@@ -566,14 +545,8 @@ export default function DashboardPage() {
                 )}
               </div>
 
-              {/* Profile Avatar */}
-              <button
-                className="w-10 h-10 rounded-full bg-gradient-to-r from-[#0046FF] to-[#001BB7] flex items-center justify-center text-white font-semibold shadow-lg shadow-[#0046FF]/25 hover:scale-110 active:scale-95 transition-all duration-300 relative group overflow-hidden"
-                aria-label="Profile"
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-[#FF8040] to-[#FF6B35] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                <span className="relative z-10">JD</span>
-              </button>
+              
+              
             </div>
           </div>
         </header>
