@@ -82,6 +82,27 @@ export const translations = {
     uptime: 'Uptime',
     users: 'Users',
   },
+
+  // Dashboard
+  dashboard: {
+    title: 'Dashboard',
+    searchPlaceholder: 'Search...',
+    todayAttendance: "Today's Attendance",
+    totalStudents: 'Total Students',
+    activeSessions: 'Active Sessions',
+    attendanceRate: 'Attendance Rate',
+    attendanceOverview: 'Attendance Overview',
+    attendanceDistribution: 'Attendance Distribution',
+    generateReport: 'Generate Report',
+    menu: {
+      dashboard: 'Dashboard',
+      students: 'Students',
+      attendance: 'Attendance',
+      reports: 'Reports',
+      settings: 'Settings',
+      logout: 'Logout',
+    },
+  },
 };
 
 export type TranslationKey = keyof typeof translations;

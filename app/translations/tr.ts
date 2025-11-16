@@ -82,6 +82,27 @@ export const translations = {
     uptime: 'Çalışma Süresi',
     users: 'Kullanıcı',
   },
+
+  // Dashboard
+  dashboard: {
+    title: 'Kontrol Paneli',
+    searchPlaceholder: 'Ara...',
+    todayAttendance: 'Bugünün Katılımı',
+    totalStudents: 'Toplam Öğrenci',
+    activeSessions: 'Aktif Oturumlar',
+    attendanceRate: 'Katılım Oranı',
+    attendanceOverview: 'Katılım Genel Bakış',
+    attendanceDistribution: 'Katılım Dağılımı',
+    generateReport: 'Rapor Oluştur',
+    menu: {
+      dashboard: 'Kontrol Paneli',
+      students: 'Öğrenciler',
+      attendance: 'Katılım',
+      reports: 'Raporlar',
+      settings: 'Ayarlar',
+      logout: 'Çıkış',
+    },
+  },
 };
 
 export type TranslationKey = keyof typeof translations;
