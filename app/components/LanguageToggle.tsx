@@ -2,33 +2,65 @@
 
 import { useLanguage } from '../context/LanguageContext';
 
-export default function LanguageToggle() {
+interface LanguageToggleProps {
+  compact?: boolean;
+}
+
+export default function LanguageToggle({ compact = false }: LanguageToggleProps) {
   const { language, setLanguage } = useLanguage();
 
   const toggleLanguage = () => {
     setLanguage(language === 'en' ? 'tr' : 'en');
   };
 
+  if (compact) {
+    return (
+      <button
+        onClick={toggleLanguage}
+        className="w-full p-3 backdrop-blur-md rounded-xl border shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all duration-300 group relative overflow-hidden flex items-center justify-center"
+        style={{
+          backgroundColor: 'var(--bg-tertiary)',
+          borderColor: 'var(--border-primary)',
+          transition: 'all 600ms cubic-bezier(0.4, 0, 0.2, 1)'
+        }}
+        aria-label="Toggle language"
+      >
+        <div 
+          className="absolute inset-0 bg-gradient-to-r from-[#0046FF]/10 to-[#FF8040]/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl"
+        />
+        <span 
+          className="text-sm font-semibold transition-all duration-300 relative z-10"
+          style={{ color: 'var(--text-primary)' }}
+        >
+          {language === 'en' ? 'EN' : 'TR'}
+        </span>
+      </button>
+    );
+  }
+
   return (
     <button
       onClick={toggleLanguage}
-      className="fixed bottom-6 left-6 z-50 px-4 py-3 backdrop-blur-md rounded-full border shadow-lg hover:shadow-xl hover:scale-110 active:scale-95 transition-all duration-300 group flex items-center gap-2"
+      className="w-full px-4 py-3 backdrop-blur-md rounded-xl border shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all duration-300 group relative overflow-hidden flex items-center gap-2"
       style={{
-        backgroundColor: 'var(--bg-secondary)',
+        backgroundColor: 'var(--bg-tertiary)',
         borderColor: 'var(--border-primary)',
         transition: 'all 600ms cubic-bezier(0.4, 0, 0.2, 1)'
       }}
       aria-label="Toggle language"
     >
+      <div 
+        className="absolute inset-0 bg-gradient-to-r from-[#0046FF]/10 to-[#FF8040]/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl"
+      />
       <span 
-        className="text-sm font-semibold transition-all duration-300"
+        className="text-sm font-semibold transition-all duration-300 relative z-10"
         style={{ color: 'var(--text-primary)' }}
       >
         {language === 'en' ? 'EN' : 'TR'}
       </span>
       
       {/* Language indicator dots */}
-      <div className="flex gap-1">
+      <div className="flex gap-1 relative z-10">
         <div 
           className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
             language === 'en' ? 'scale-100 opacity-100' : 'scale-75 opacity-50'
@@ -46,16 +78,6 @@ export default function LanguageToggle() {
           }}
         />
       </div>
-
-      {/* Glow effect */}
-      <div 
-        className="absolute inset-0 rounded-full blur-md opacity-30 transition-all duration-500 -z-10"
-        style={{
-          backgroundColor: language === 'en' 
-            ? 'rgba(0, 70, 255, 0.3)' 
-            : 'rgba(255, 128, 64, 0.3)'
-        }}
-      />
     </button>
   );
 }
