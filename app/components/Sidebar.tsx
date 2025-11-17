@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useLanguage } from '../context/LanguageContext';
 import AnimatedText from './AnimatedText';
+import LanguageToggle from './LanguageToggle';
 
 interface SidebarProps {
   sidebarCollapsed: boolean;
@@ -205,30 +206,38 @@ export default function Sidebar({
             })}
           </div>
 
-          {/* Sidebar Footer - User Info (when expanded) */}
-          {!sidebarCollapsed && (
-            <div 
-              className="p-3 border-t mt-auto"
-              style={{ 
-                borderColor: 'var(--border-primary)',
-                transition: 'opacity 250ms ease-in-out'
-              }}
-            >
-              <div className="flex items-center gap-3 p-3 rounded-xl" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
-                <div className="w-10 h-10 rounded-full bg-gradient-to-r from-[#0046FF] to-[#001BB7] flex items-center justify-center text-white font-semibold shadow-lg shadow-[#0046FF]/25 flex-shrink-0">
-                  JD
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
-                    John Doe
-                  </p>
-                  <p className="text-xs truncate" style={{ color: 'var(--text-quaternary)' }}>
-                    Administrator
-                  </p>
+          {/* Sidebar Footer */}
+          <div className="space-y-3 mt-auto">
+            {/* Language Toggle */}
+            <div className="px-3">
+              <LanguageToggle compact={sidebarCollapsed} />
+            </div>
+
+            {/* User Info (when expanded) */}
+            {!sidebarCollapsed && (
+              <div 
+                className="p-3 border-t"
+                style={{ 
+                  borderColor: 'var(--border-primary)',
+                  transition: 'opacity 250ms ease-in-out'
+                }}
+              >
+                <div className="flex items-center gap-3 p-3 rounded-xl" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-r from-[#0046FF] to-[#001BB7] flex items-center justify-center text-white font-semibold shadow-lg shadow-[#0046FF]/25 flex-shrink-0">
+                    JD
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
+                      John Doe
+                    </p>
+                    <p className="text-xs truncate" style={{ color: 'var(--text-quaternary)' }}>
+                      Administrator
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </nav>
       </aside>
     </>
