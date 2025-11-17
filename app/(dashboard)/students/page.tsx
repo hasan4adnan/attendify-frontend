@@ -1,4 +1,4 @@
-import Students from '../Screens/students';
+import Students from '../../Screens/students';
 
 export default function StudentsPage() {
   return <Students />;
