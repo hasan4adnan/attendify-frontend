@@ -297,6 +297,56 @@ export const translations = {
     roomPlaceholder: 'Derslik numarasını girin',
     instructorPlaceholder: 'Öğretmen adını girin',
   },
+
+  // Attendance Page
+  attendance: {
+    title: 'Katılım',
+    subtitle: 'Yüz doğrulama kullanarak dersleriniz için katılım alın',
+    selectCourse: 'Ders Seç',
+    selectCoursePlaceholder: 'Katılım başlatmak için bir ders seçin',
+    noCourseSelected: 'Ders seçilmedi',
+    startSession: 'Oturumu Başlat',
+    startAttendanceSession: 'Katılım Oturumunu Başlat',
+    startAttendanceSubtitle: 'Bir ders seçin ve yüz doğrulama katılımına başlayın',
+    readyToStart: 'Katılım Başlatmaya Hazır mısınız?',
+    previousRecords: 'Önceki Katılım Kayıtları',
+    noPreviousRecords: 'Önceki katılım kaydı yok',
+    sessionDate: 'Oturum Tarihi',
+    studentsPresent: 'Mevcut Öğrenciler',
+    studentsAbsent: 'Yok Öğrenciler',
+    viewDetails: 'Detayları Görüntüle',
+    // Pre-check popup
+    preCheckTitle: 'Katılım Oturumu Hazırlanıyor',
+    preCheckSubtitle: 'Lütfen sistemin hazırlanmasını bekleyin',
+    courseSelected: 'Ders Seçildi',
+    cameraDetected: 'Kamera Tespit Edildi',
+    systemReady: 'Sistem Hazır',
+    initializingSession: 'Oturum Başlatılıyor',
+    // Camera session
+    liveSessionTitle: 'Canlı Katılım Oturumu',
+    liveSessionSubtitle: 'Öğrenciler tanınmak için yüzlerini göstermelidir',
+    endSession: 'Oturumu Sonlandır',
+    pauseSession: 'Oturumu Duraklat',
+    resumeSession: 'Oturumu Devam Ettir',
+    sessionActive: 'Oturum Aktif',
+    // End session
+    endingSession: 'Oturum Sonlandırılıyor',
+    savingFaces: 'Yüzler Kaydediliyor',
+    analyzingData: 'Katılım Verileri Analiz Ediliyor',
+    generatingReport: 'Rapor Oluşturuluyor',
+    finalizingSession: 'Oturum Sonlandırılıyor',
+    completed: 'Tamamlandı',
+    // Success screen
+    sessionCompleted: 'Katılım Oturumu Tamamlandı',
+    sessionCompletedSubtitle: 'Katılım oturumunuz başarıyla tamamlandı ve kaydedildi.',
+    studentsMarked: 'İşaretlenen Öğrenciler',
+    sessionDuration: 'Oturum Süresi',
+    close: 'Kapat',
+    // Errors
+    noCourseSelectedError: 'Lütfen oturum başlatmadan önce bir ders seçin',
+    cameraNotAvailable: 'Kamera mevcut değil',
+    sessionError: 'Oturum sırasında bir hata oluştu',
+  },
 };
 
 export type TranslationKey = keyof typeof translations;

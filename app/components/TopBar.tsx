@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 interface TopBarProps {
   mobileMenuOpen: boolean;
   setMobileMenuOpen: (open: boolean) => void;
+  sidebarCollapsed?: boolean;
 }
 
 // Fake admin data
@@ -48,12 +49,23 @@ const notifications = [
   },
 ];
 
-export default function TopBar({ mobileMenuOpen, setMobileMenuOpen }: TopBarProps) {
+export default function TopBar({ mobileMenuOpen, setMobileMenuOpen, sidebarCollapsed = false }: TopBarProps) {
   const [searchFocused, setSearchFocused] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [adminDropdownOpen, setAdminDropdownOpen] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(false);
 
   const unreadCount = notifications.filter(n => n.unread).length;
+
+  // Check if desktop on mount and resize
+  useEffect(() => {
+    setIsDesktop(window.innerWidth >= 1024);
+    const handleResize = () => {
+      setIsDesktop(window.innerWidth >= 1024);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -80,12 +92,19 @@ export default function TopBar({ mobileMenuOpen, setMobileMenuOpen }: TopBarProp
       .slice(0, 2);
   };
 
+  // Calculate left offset based on sidebar state
+  const sidebarWidth = sidebarCollapsed ? 80 : 288;
+  const leftOffset = isDesktop ? sidebarWidth : 0;
+
   return (
     <header 
-      className="sticky top-0 z-30 backdrop-blur-2xl border-b shadow-lg"
+      className="fixed top-0 z-30 backdrop-blur-2xl border-b shadow-lg"
       style={{
         backgroundColor: 'var(--bg-secondary)',
-        borderColor: 'var(--border-primary)'
+        borderColor: 'var(--border-primary)',
+        left: `${leftOffset}px`,
+        right: '0',
+        transition: 'left 300ms cubic-bezier(0.4, 0, 0.2, 1)'
       }}
     >
       <div className="flex items-center justify-between p-4 lg:p-6 gap-4">
