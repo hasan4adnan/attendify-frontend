@@ -144,14 +144,16 @@ export default function ActionMenu({
       {/* Menu */}
       <div
         ref={menuRef}
-        className="fixed z-[9999] backdrop-blur-2xl rounded-xl border py-1.5 min-w-[200px]"
+        className="fixed z-[9999] rounded-xl border py-1.5 min-w-[200px]"
         style={{
           top: `${menuPosition.top}px`,
           left: `${menuPosition.left}px`,
-          backgroundColor: 'var(--bg-secondary)',
-          borderColor: 'var(--border-primary)',
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5), 0 0 0 1px var(--border-primary)',
-          animation: 'slideInFromTop 200ms cubic-bezier(0.4, 0, 0.2, 1)'
+          backgroundColor: '#1e1e2d',
+          borderColor: '#2A2A3B',
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5), 0 0 0 1px #2A2A3B',
+          animation: 'slideInFromTop 200ms cubic-bezier(0.4, 0, 0.2, 1)',
+          backdropFilter: 'none',
+          opacity: 1,
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -175,16 +177,17 @@ export default function ActionMenu({
                 }}
                 className="w-full px-4 py-2.5 flex items-center gap-3 text-sm font-medium transition-all duration-200 first:rounded-t-lg last:rounded-b-lg relative"
                 style={{
-                  color: isDanger ? '#ef4444' : 'var(--text-primary)',
-                  backgroundColor: 'transparent'
+                  color: isDanger ? '#ef4444' : '#E4E4E7',
+                  backgroundColor: '#1e1e2d',
+                  opacity: 1,
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.backgroundColor = isDanger 
-                    ? 'rgba(239, 68, 68, 0.1)' 
-                    : 'var(--bg-tertiary)';
+                    ? '#2A2A3B' 
+                    : '#2A2A3B';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.backgroundColor = '#1e1e2d';
                 }}
               >
                 {/* Icon */}
@@ -214,7 +217,7 @@ export default function ActionMenu({
               {index < items.length - 1 && (
                 <div
                   className="h-px mx-3 my-0.5"
-                  style={{ backgroundColor: 'var(--border-primary)' }}
+                  style={{ backgroundColor: '#2A2A3B', opacity: 1 }}
                 />
               )}
             </React.Fragment>

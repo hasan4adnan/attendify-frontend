@@ -2,6 +2,8 @@
 
 import { useLanguage } from '../context/LanguageContext';
 import AnimatedText from '../components/AnimatedText';
+import AttendanceOverviewChart from '../components/charts/AttendanceOverviewChart';
+import AttendanceDistributionChart from '../components/charts/AttendanceDistributionChart';
 
 export default function DashboardPage() {
   const { t } = useLanguage();
@@ -98,63 +100,30 @@ export default function DashboardPage() {
               borderColor: 'var(--border-primary)'
             }}
           >
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h3 
-                  className="text-xl font-bold mb-1"
-                  style={{ color: 'var(--text-primary)' }}
-                >
-                  <AnimatedText speed={40}>
-                    {t.dashboard.attendanceOverview}
-                  </AnimatedText>
-                </h3>
-                <p 
-                  className="text-sm"
-                  style={{ color: 'var(--text-quaternary)' }}
-                >
-                  Last 7 days
-                </p>
-              </div>
-              <button
-                className="px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 hover:scale-105 hover:shadow-lg group relative overflow-hidden"
-                style={{
-                  backgroundColor: 'var(--bg-tertiary)',
-                  color: 'var(--text-primary)',
-                  border: '1px solid var(--border-primary)'
-                }}
+            <div className="mb-6">
+              <h3 
+                className="text-xl font-bold mb-1"
+                style={{ color: 'var(--text-primary)' }}
               >
-                <div 
-                  className="absolute inset-0 bg-gradient-to-r from-[#0046FF] to-[#001BB7] opacity-0 group-hover:opacity-10 transition-opacity duration-300 rounded-xl"
-                />
-                <span className="relative z-10">View All</span>
-              </button>
+                <AnimatedText speed={40}>
+                  {t.dashboard.attendanceOverview}
+                </AnimatedText>
+              </h3>
+              <p 
+                className="text-sm"
+                style={{ color: 'var(--text-quaternary)' }}
+              >
+                Last 7 days
+              </p>
             </div>
-            {/* Chart Placeholder */}
+            {/* Attendance Overview Chart */}
             <div 
-              className="h-64 lg:h-80 rounded-xl flex items-center justify-center relative overflow-hidden"
+              className="h-[380px] rounded-xl relative overflow-hidden p-4"
               style={{
                 backgroundColor: 'var(--bg-tertiary)',
-                border: '2px dashed var(--border-primary)'
               }}
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-[#0046FF]/5 to-[#001BB7]/5" />
-              <div className="text-center space-y-3 relative z-10">
-                <svg
-                  className="w-20 h-20 mx-auto"
-                  style={{ color: 'var(--text-quaternary)' }}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
-                <p 
-                  className="text-sm font-medium"
-                  style={{ color: 'var(--text-quaternary)' }}
-                >
-                  Chart Placeholder
-                </p>
-              </div>
+              <AttendanceOverviewChart />
             </div>
           </div>
 
@@ -182,33 +151,14 @@ export default function DashboardPage() {
                 This month
               </p>
             </div>
-            {/* Pie Chart Placeholder */}
+            {/* Attendance Distribution Pie Chart */}
             <div 
-              className="h-64 lg:h-80 rounded-xl flex items-center justify-center relative overflow-hidden"
+              className="h-[380px] rounded-xl relative overflow-hidden p-4"
               style={{
                 backgroundColor: 'var(--bg-tertiary)',
-                border: '2px dashed var(--border-primary)'
               }}
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-[#FF8040]/5 to-[#FF6B35]/5" />
-              <div className="text-center space-y-3 relative z-10">
-                <svg
-                  className="w-20 h-20 mx-auto"
-                  style={{ color: 'var(--text-quaternary)' }}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
-                </svg>
-                <p 
-                  className="text-sm font-medium"
-                  style={{ color: 'var(--text-quaternary)' }}
-                >
-                  Pie Chart Placeholder
-                </p>
-              </div>
+              <AttendanceDistributionChart />
             </div>
           </div>
         </div>

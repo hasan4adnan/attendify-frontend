@@ -4,8 +4,19 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import AnimatedText from '../components/AnimatedText';
 import ActionMenu, { ActionMenuItem } from '../components/ActionMenu';
+import { getCourses, Course } from '../utils/courseData';
 
 type VerificationStatus = 'verified' | 'pending' | 'notVerified';
+type AttendanceStatus = 'present' | 'absent';
+
+type AttendanceRecord = {
+  id: string;
+  date: string; // YYYY-MM-DD
+  courseId: number;
+  courseName: string;
+  courseCode: string;
+  status: AttendanceStatus;
+};
 
 type Student = {
   id: number;
@@ -14,20 +25,57 @@ type Student = {
   studentNumber: string;
   email: string;
   verificationStatus: VerificationStatus;
+  courseIds: number[]; // Array of course IDs
+  attendance: AttendanceRecord[]; // Attendance history
 };
 
 const initialStudents: Student[] = [
-  { id: 1, firstName: 'Ahmet', lastName: 'Yılmaz', studentNumber: '1001', email: 'ahmet.yilmaz@example.com', verificationStatus: 'verified' },
-  { id: 2, firstName: 'Ayşe', lastName: 'Demir', studentNumber: '1002', email: 'ayse.demir@example.com', verificationStatus: 'pending' },
-  { id: 3, firstName: 'Mehmet', lastName: 'Kaya', studentNumber: '1003', email: 'mehmet.kaya@example.com', verificationStatus: 'notVerified' },
+  { 
+    id: 1, 
+    firstName: 'Ahmet', 
+    lastName: 'Yılmaz', 
+    studentNumber: '1001', 
+    email: 'ahmet.yilmaz@example.com', 
+    verificationStatus: 'verified',
+    courseIds: [1],
+    attendance: [
+      { id: '1', date: '2024-01-15', courseId: 1, courseName: 'Introduction to Computer Science', courseCode: 'CS101', status: 'present' },
+      { id: '2', date: '2024-01-17', courseId: 1, courseName: 'Introduction to Computer Science', courseCode: 'CS101', status: 'absent' },
+    ],
+  },
+  { 
+    id: 2, 
+    firstName: 'Ayşe', 
+    lastName: 'Demir', 
+    studentNumber: '1002', 
+    email: 'ayse.demir@example.com', 
+    verificationStatus: 'pending',
+    courseIds: [1],
+    attendance: [
+      { id: '3', date: '2024-01-15', courseId: 1, courseName: 'Introduction to Computer Science', courseCode: 'CS101', status: 'present' },
+      { id: '4', date: '2024-01-17', courseId: 1, courseName: 'Introduction to Computer Science', courseCode: 'CS101', status: 'present' },
+    ],
+  },
+  { 
+    id: 3, 
+    firstName: 'Mehmet', 
+    lastName: 'Kaya', 
+    studentNumber: '1003', 
+    email: 'mehmet.kaya@example.com', 
+    verificationStatus: 'notVerified',
+    courseIds: [],
+    attendance: [],
+  },
 ];
 
 const Students = () => {
   const [students, setStudents] = useState<Student[]>(initialStudents);
+  const [courses, setCourses] = useState<Course[]>(getCourses());
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [studentNumber, setStudentNumber] = useState('');
   const [email, setEmail] = useState('');
+  const [selectedCourseIds, setSelectedCourseIds] = useState<number[]>([]);
   const [focused, setFocused] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'add' | 'list'>('list');
   const [search, setSearch] = useState('');
@@ -36,6 +84,7 @@ const Students = () => {
   const [editLastName, setEditLastName] = useState('');
   const [editStudentNumber, setEditStudentNumber] = useState('');
   const [editEmail, setEditEmail] = useState('');
+  const [editCourseIds, setEditCourseIds] = useState<number[]>([]);
   const [notification, setNotification] = useState<{ show: boolean, message: string }>({ show: false, message: '' });
   const [currentPage, setCurrentPage] = useState(1);
   const [searchFocused, setSearchFocused] = useState(false);
@@ -43,9 +92,26 @@ const Students = () => {
   const [scanning, setScanning] = useState(false);
   const [scanComplete, setScanComplete] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
+  const [attendanceModal, setAttendanceModal] = useState<{ open: boolean, student?: Student }>({ open: false });
+  const [courseDropdownOpen, setCourseDropdownOpen] = useState(false);
+  const [editCourseDropdownOpen, setEditCourseDropdownOpen] = useState(false);
+  const [courseSearch, setCourseSearch] = useState('');
+  const [editCourseSearch, setEditCourseSearch] = useState('');
+  const [attendanceOverrideModal, setAttendanceOverrideModal] = useState<{ open: boolean, record?: AttendanceRecord, student?: Student }>({ open: false });
   const buttonRefs = useRef<{ [key: number]: HTMLButtonElement | null }>({});
+  const courseDropdownRef = useRef<HTMLDivElement>(null);
+  const editCourseDropdownRef = useRef<HTMLDivElement>(null);
   const studentsPerPage = 10;
   const { t } = useLanguage();
+
+  // Sync courses from localStorage
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const updatedCourses = getCourses();
+      setCourses(updatedCourses);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   // NEW STATE: Delete modal
   const [deleteModal, setDeleteModal] = useState<{ open: boolean, student?: Student }>({
@@ -60,17 +126,17 @@ const Students = () => {
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (openMenuId !== null) {
-        const menuElement = menuRefs.current[openMenuId];
-        if (menuElement && !menuElement.contains(event.target as Node)) {
-          setOpenMenuId(null);
-        }
+      if (courseDropdownOpen && courseDropdownRef.current && !courseDropdownRef.current.contains(event.target as Node)) {
+        setCourseDropdownOpen(false);
+      }
+      if (editCourseDropdownOpen && editCourseDropdownRef.current && !editCourseDropdownRef.current.contains(event.target as Node)) {
+        setEditCourseDropdownOpen(false);
       }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [openMenuId]);
+  }, [courseDropdownOpen, editCourseDropdownOpen]);
 
   // Get status badge styling
   const getStatusBadge = (status: VerificationStatus) => {
@@ -99,6 +165,76 @@ const Students = () => {
     }
   };
 
+  // Helper: Get today's day name
+  const getTodayDay = (): 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat' | 'Sun' => {
+    const days: ('Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat' | 'Sun')[] = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    return days[new Date().getDay()];
+  };
+
+  // Helper: Get today's date string (YYYY-MM-DD)
+  const getTodayDate = (): string => {
+    return new Date().toISOString().split('T')[0];
+  };
+
+  // Helper: Get courses for a student
+  const getStudentCourses = (student: Student): Course[] => {
+    return courses.filter(c => student.courseIds.includes(c.id));
+  };
+
+  // Helper: Get today's classes for a student
+  const getTodayClasses = (student: Student): Course[] => {
+    const today = getTodayDay();
+    return getStudentCourses(student).filter(c => 
+      c.schedule.some(s => s.day === today)
+    );
+  };
+
+  // Helper: Get today's attendance status
+  const getTodayAttendanceStatus = (student: Student): { status: 'present' | 'absent' | 'noClass' | 'partial', count: number, total: number } => {
+    const todayClasses = getTodayClasses(student);
+    if (todayClasses.length === 0) {
+      return { status: 'noClass', count: 0, total: 0 };
+    }
+
+    const today = getTodayDate();
+    const todayRecords = student.attendance.filter(a => a.date === today);
+    const presentCount = todayRecords.filter(a => a.status === 'present').length;
+    const totalCount = todayClasses.length;
+
+    if (presentCount === 0) {
+      return { status: 'absent', count: 0, total: totalCount };
+    } else if (presentCount === totalCount) {
+      return { status: 'present', count: presentCount, total: totalCount };
+    } else {
+      return { status: 'partial', count: presentCount, total: totalCount };
+    }
+  };
+
+  // Toggle course selection
+  const toggleCourse = (courseId: number, isEdit: boolean = false) => {
+    if (isEdit) {
+      setEditCourseIds(prev => 
+        prev.includes(courseId) 
+          ? prev.filter(id => id !== courseId)
+          : [...prev, courseId]
+      );
+    } else {
+      setSelectedCourseIds(prev => 
+        prev.includes(courseId) 
+          ? prev.filter(id => id !== courseId)
+          : [...prev, courseId]
+      );
+    }
+  };
+
+  // Filter courses for dropdown
+  const getFilteredCourses = (searchTerm: string): Course[] => {
+    return courses.filter(c =>
+      c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      c.code.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  };
+
   // Add Student
   const handleAddStudent = (e: React.FormEvent) => {
     e.preventDefault();
@@ -107,12 +243,14 @@ const Students = () => {
     setStudents([
       ...students,
       {
-        id: students.length + 1,
+        id: students.length > 0 ? Math.max(...students.map(s => s.id)) + 1 : 1,
         firstName,
         lastName,
         studentNumber,
         email,
         verificationStatus: 'notVerified',
+        courseIds: selectedCourseIds,
+        attendance: [],
       },
     ]);
 
@@ -120,6 +258,7 @@ const Students = () => {
     setLastName('');
     setStudentNumber('');
     setEmail('');
+    setSelectedCourseIds([]);
 
     setNotification({ show: true, message: t.students.studentAdded });
     setTimeout(() => setNotification({ show: false, message: '' }), 2000);
@@ -131,6 +270,7 @@ const Students = () => {
     setEditLastName(student.lastName);
     setEditStudentNumber(student.studentNumber);
     setEditEmail(student.email);
+    setEditCourseIds([...student.courseIds]);
     setEditModal({ open: true, student });
     setOpenMenuId(null);
   };
@@ -141,13 +281,105 @@ const Students = () => {
 
     setStudents(students.map(s =>
       s.id === editModal.student!.id
-        ? { ...s, firstName: editFirstName, lastName: editLastName, studentNumber: editStudentNumber, email: editEmail }
+        ? { ...s, firstName: editFirstName, lastName: editLastName, studentNumber: editStudentNumber, email: editEmail, courseIds: editCourseIds }
         : s
     ));
 
     setEditModal({ open: false });
 
     setNotification({ show: true, message: t.students.studentUpdated });
+    setTimeout(() => setNotification({ show: false, message: '' }), 2000);
+  };
+
+  // Handle attendance toggle for today
+  const handleTodayAttendanceToggle = (student: Student, markAsPresent: boolean) => {
+    const today = getTodayDate();
+    const todayClasses = getTodayClasses(student);
+    
+    if (todayClasses.length === 0) return;
+
+    const newRecords: AttendanceRecord[] = todayClasses.map(course => {
+      const existingRecord = student.attendance.find(
+        a => a.date === today && a.courseId === course.id
+      );
+      
+      if (existingRecord) {
+        return { ...existingRecord, status: markAsPresent ? 'present' : 'absent' };
+      } else {
+        return {
+          id: `${student.id}-${course.id}-${today}`,
+          date: today,
+          courseId: course.id,
+          courseName: course.name,
+          courseCode: course.code,
+          status: markAsPresent ? 'present' : 'absent',
+        };
+      }
+    });
+
+    // Merge with existing attendance records
+    const updatedAttendance = [
+      ...student.attendance.filter(a => !(a.date === today && todayClasses.some(c => c.id === a.courseId))),
+      ...newRecords,
+    ];
+
+    const updatedStudents = students.map(s =>
+      s.id === student.id
+        ? { ...s, attendance: updatedAttendance }
+        : s
+    );
+
+    setStudents(updatedStudents);
+
+    // Update the attendance modal if it's open for this student
+    if (attendanceModal.open && attendanceModal.student?.id === student.id) {
+      const updatedStudent = updatedStudents.find(s => s.id === student.id);
+      if (updatedStudent) {
+        setAttendanceModal({ open: true, student: updatedStudent });
+      }
+    }
+
+    setNotification({ show: true, message: t.students.attendanceUpdated });
+    setTimeout(() => setNotification({ show: false, message: '' }), 2000);
+  };
+
+  // Handle attendance override
+  const handleAttendanceOverride = (student: Student, record: AttendanceRecord, newStatus: AttendanceStatus) => {
+    setAttendanceOverrideModal({ open: true, record, student });
+    // Will be confirmed in modal
+  };
+
+  // Confirm attendance override
+  const confirmAttendanceOverride = () => {
+    if (!attendanceOverrideModal.record || !attendanceOverrideModal.student) return;
+
+    const student = attendanceOverrideModal.student;
+    const record = attendanceOverrideModal.record;
+    const newStatus = record.status === 'present' ? 'absent' : 'present';
+
+    const updatedStudents = students.map(s =>
+      s.id === student.id
+        ? {
+            ...s,
+            attendance: s.attendance.map(a =>
+              a.id === record.id ? { ...a, status: newStatus } : a
+            ),
+          }
+        : s
+    );
+
+    setStudents(updatedStudents);
+    
+    // Update the attendance modal if it's open for this student
+    if (attendanceModal.open && attendanceModal.student?.id === student.id) {
+      const updatedStudent = updatedStudents.find(s => s.id === student.id);
+      if (updatedStudent) {
+        setAttendanceModal({ open: true, student: updatedStudent });
+      }
+    }
+
+    setAttendanceOverrideModal({ open: false });
+    setNotification({ show: true, message: t.students.attendanceUpdated });
     setTimeout(() => setNotification({ show: false, message: '' }), 2000);
   };
 
@@ -431,6 +663,121 @@ const Students = () => {
               </div>
             </div>
 
+            {/* Course Selection */}
+            <div className="space-y-2">
+              <label 
+                className="block text-sm font-medium"
+                style={{ color: 'var(--text-secondary)' }}
+              >
+                <AnimatedText speed={50}>
+                  {t.students.courses}
+                </AnimatedText>
+              </label>
+              <div className="relative" ref={courseDropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => setCourseDropdownOpen(!courseDropdownOpen)}
+                  className="w-full px-4 py-3.5 rounded-xl border transition-all duration-300 text-left flex items-center justify-between"
+                  style={{
+                    backgroundColor: courseDropdownOpen ? 'var(--bg-tertiary)' : 'var(--bg-tertiary)',
+                    borderColor: courseDropdownOpen ? '#0046FF' : 'var(--border-primary)',
+                    color: 'var(--text-primary)',
+                  }}
+                >
+                  <span>
+                    {selectedCourseIds.length === 0
+                      ? t.students.selectCourses
+                      : `${selectedCourseIds.length} ${selectedCourseIds.length === 1 ? 'course' : 'courses'} selected`}
+                  </span>
+                  <svg
+                    className={`w-5 h-5 transition-transform duration-300 ${courseDropdownOpen ? 'rotate-180' : ''}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {courseDropdownOpen && (
+                  <div
+                    className="absolute z-50 w-full mt-2 rounded-xl backdrop-blur-xl border max-h-64 overflow-y-auto"
+                    style={{
+                      backgroundColor: 'var(--bg-secondary)',
+                      borderColor: 'var(--border-primary)',
+                    }}
+                  >
+                    <div className="p-2 border-b" style={{ borderColor: 'var(--border-primary)' }}>
+                      <input
+                        type="text"
+                        value={courseSearch}
+                        onChange={(e) => setCourseSearch(e.target.value)}
+                        placeholder="Search courses..."
+                        className="w-full px-3 py-2 rounded-lg"
+                        style={{
+                          backgroundColor: 'var(--bg-primary)',
+                          border: '1px solid var(--border-primary)',
+                          color: 'var(--text-primary)',
+                          outline: 'none',
+                        }}
+                      />
+                    </div>
+                    <div className="p-2 space-y-1">
+                      {getFilteredCourses(courseSearch).map((course) => (
+                        <label
+                          key={course.id}
+                          className="flex items-center gap-3 p-2 rounded-lg cursor-pointer hover:bg-opacity-50 transition-colors"
+                          style={{ backgroundColor: 'var(--bg-tertiary)' }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedCourseIds.includes(course.id)}
+                            onChange={() => toggleCourse(course.id, false)}
+                            className="w-4 h-4 rounded"
+                            style={{
+                              accentColor: '#0046FF',
+                            }}
+                          />
+                          <span style={{ color: 'var(--text-primary)' }}>
+                            {course.name} ({course.code})
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+              {/* Selected Courses Chips */}
+              {selectedCourseIds.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {courses
+                    .filter(c => selectedCourseIds.includes(c.id))
+                    .map((course) => (
+                      <div
+                        key={course.id}
+                        className="px-3 py-1 rounded-full flex items-center gap-2"
+                        style={{
+                          backgroundColor: 'var(--bg-tertiary)',
+                          border: '1px solid var(--border-primary)',
+                        }}
+                      >
+                        <span className="text-sm" style={{ color: 'var(--text-primary)' }}>
+                          {course.code}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => toggleCourse(course.id, false)}
+                          className="text-red-400 hover:text-red-300"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
+                </div>
+              )}
+            </div>
+
             <button
               type="submit"
                 className="w-full py-4 px-6 bg-gradient-to-r from-[#0046FF] to-[#001BB7] text-white font-semibold rounded-xl shadow-lg shadow-[#0046FF]/25 hover:shadow-[#0046FF]/40 focus:outline-none focus:ring-2 focus:ring-[#0046FF] focus:ring-offset-2 focus:ring-offset-transparent transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] relative overflow-hidden group hover:from-[#0055FF] hover:to-[#0025CC]"
@@ -526,6 +873,16 @@ const Students = () => {
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>
                       <AnimatedText speed={50}>
+                        {t.students.courses}
+                      </AnimatedText>
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>
+                      <AnimatedText speed={50}>
+                        {t.students.attendance}
+                      </AnimatedText>
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>
+                      <AnimatedText speed={50}>
                         {t.students.faceVerificationStatus}
                       </AnimatedText>
                     </th>
@@ -540,7 +897,7 @@ const Students = () => {
                 <tbody className="divide-y" style={{ borderColor: 'var(--border-primary)' }}>
                   {paginatedStudents.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="px-6 py-12 text-center" style={{ color: 'var(--text-tertiary)' }}>
+                      <td colSpan={8} className="px-6 py-12 text-center" style={{ color: 'var(--text-tertiary)' }}>
                         <div className="flex flex-col items-center gap-3">
                           <svg
                             className="w-16 h-16"
@@ -587,6 +944,158 @@ const Students = () => {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap cursor-pointer" style={{ color: 'var(--text-primary)' }} onClick={() => setDetailModal({ open: true, student })}>
                             {student.email}
+                          </td>
+                          {/* Courses Column */}
+                          <td className="px-6 py-4 cursor-pointer" onClick={() => setDetailModal({ open: true, student })}>
+                            <div className="flex flex-wrap gap-1.5 items-center">
+                              {(() => {
+                                const studentCourses = getStudentCourses(student);
+                                const displayCourses = studentCourses.slice(0, 2);
+                                const remaining = studentCourses.length - 2;
+                                return (
+                                  <>
+                                    {displayCourses.map(course => (
+                                      <span
+                                        key={course.id}
+                                        className="px-2 py-1 rounded-md text-xs font-medium"
+                                        style={{
+                                          backgroundColor: 'var(--bg-tertiary)',
+                                          border: '1px solid var(--border-primary)',
+                                          color: 'var(--text-primary)',
+                                        }}
+                                        title={`${course.name} (${course.code})`}
+                                      >
+                                        {course.code}
+                                      </span>
+                                    ))}
+                                    {remaining > 0 && (
+                                      <span
+                                        className="px-2 py-1 rounded-md text-xs font-medium"
+                                        style={{
+                                          backgroundColor: 'var(--bg-tertiary)',
+                                          border: '1px solid var(--border-primary)',
+                                          color: 'var(--text-tertiary)',
+                                        }}
+                                        title={studentCourses.slice(2).map(c => `${c.name} (${c.code})`).join(', ')}
+                                      >
+                                        +{remaining}
+                                      </span>
+                                    )}
+                                    {studentCourses.length === 0 && (
+                                      <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                                        {t.students.noCoursesSelected}
+                                      </span>
+                                    )}
+                                  </>
+                                );
+                              })()}
+                            </div>
+                          </td>
+                          {/* Attendance Column */}
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-2">
+                              {(() => {
+                                const attendanceStatus = getTodayAttendanceStatus(student);
+                                const todayClasses = getTodayClasses(student);
+                                
+                                if (attendanceStatus.status === 'noClass') {
+                                  return (
+                                    <span
+                                      className="px-3 py-1.5 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5"
+                                      style={{
+                                        backgroundColor: 'rgba(156, 163, 175, 0.15)',
+                                        color: '#9ca3af',
+                                        border: '1px solid rgba(156, 163, 175, 0.3)',
+                                      }}
+                                    >
+                                      {t.students.noClassToday}
+                                    </span>
+                                  );
+                                }
+
+                                const badgeStyle = attendanceStatus.status === 'present' 
+                                  ? {
+                                      bg: 'rgba(34, 197, 94, 0.15)',
+                                      color: '#22c55e',
+                                      border: 'rgba(34, 197, 94, 0.3)',
+                                      text: t.students.presentToday,
+                                    }
+                                  : attendanceStatus.status === 'partial'
+                                  ? {
+                                      bg: 'rgba(255, 128, 64, 0.15)',
+                                      color: '#FF8040',
+                                      border: 'rgba(255, 128, 64, 0.3)',
+                                      text: `${attendanceStatus.count}/${attendanceStatus.total} ${t.students.present}`,
+                                    }
+                                  : {
+                                      bg: 'rgba(239, 68, 68, 0.15)',
+                                      color: '#ef4444',
+                                      border: 'rgba(239, 68, 68, 0.3)',
+                                      text: t.students.absentToday,
+                                    };
+
+                                const isCurrentlyPresent = attendanceStatus.status === 'present' || attendanceStatus.status === 'partial';
+                                
+                                return (
+                                  <>
+                                    <span
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setAttendanceModal({ open: true, student });
+                                      }}
+                                      className="px-3 py-1.5 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer transition-all duration-200 hover:opacity-80"
+                                      style={{
+                                        backgroundColor: badgeStyle.bg,
+                                        color: badgeStyle.color,
+                                        border: `1px solid ${badgeStyle.border}`,
+                                      }}
+                                      title={t.students.viewFullHistory}
+                                    >
+                                      <div
+                                        className="w-2 h-2 rounded-full"
+                                        style={{ backgroundColor: badgeStyle.color }}
+                                      />
+                                      {badgeStyle.text}
+                                    </span>
+                                    {todayClasses.length > 0 && (
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleTodayAttendanceToggle(student, !isCurrentlyPresent);
+                                        }}
+                                        className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 hover:scale-105 active:scale-95 whitespace-nowrap"
+                                        style={{
+                                          backgroundColor: isCurrentlyPresent 
+                                            ? 'rgba(239, 68, 68, 0.15)'
+                                            : 'rgba(34, 197, 94, 0.15)',
+                                          color: isCurrentlyPresent ? '#ef4444' : '#22c55e',
+                                          border: `1px solid ${isCurrentlyPresent ? 'rgba(239, 68, 68, 0.3)' : 'rgba(34, 197, 94, 0.3)'}`,
+                                        }}
+                                        title={isCurrentlyPresent ? t.students.markAsAbsent : t.students.markAsPresent}
+                                      >
+                                        {isCurrentlyPresent ? t.students.markAsAbsent : t.students.markAsPresent}
+                                      </button>
+                                    )}
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setAttendanceModal({ open: true, student });
+                                      }}
+                                      className="p-1.5 rounded-lg transition-all duration-200 hover:scale-105 active:scale-95"
+                                      style={{
+                                        backgroundColor: 'var(--bg-tertiary)',
+                                        color: 'var(--text-primary)',
+                                      }}
+                                      title={t.students.viewFullHistory}
+                                    >
+                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                      </svg>
+                                    </button>
+                                  </>
+                                );
+                              })()}
+                            </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap cursor-pointer" onClick={() => setDetailModal({ open: true, student })}>
                             <span
@@ -949,6 +1458,121 @@ const Students = () => {
                     }}
                 />
               </div>
+
+              {/* Course Selection in Edit Modal */}
+              <div className="space-y-2">
+                <label 
+                  className="block text-sm font-medium"
+                  style={{ color: 'var(--text-secondary)' }}
+                >
+                  <AnimatedText speed={50}>
+                    {t.students.courses}
+                  </AnimatedText>
+                </label>
+                <div className="relative" ref={editCourseDropdownRef}>
+                  <button
+                    type="button"
+                    onClick={() => setEditCourseDropdownOpen(!editCourseDropdownOpen)}
+                    className="w-full px-4 py-3.5 rounded-xl border transition-all duration-300 text-left flex items-center justify-between"
+                    style={{
+                      backgroundColor: editCourseDropdownOpen ? 'var(--bg-tertiary)' : 'var(--bg-tertiary)',
+                      borderColor: editCourseDropdownOpen ? '#0046FF' : 'var(--border-primary)',
+                      color: 'var(--text-primary)',
+                    }}
+                  >
+                    <span>
+                      {editCourseIds.length === 0
+                        ? t.students.selectCourses
+                        : `${editCourseIds.length} ${editCourseIds.length === 1 ? 'course' : 'courses'} selected`}
+                    </span>
+                    <svg
+                      className={`w-5 h-5 transition-transform duration-300 ${editCourseDropdownOpen ? 'rotate-180' : ''}`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  {editCourseDropdownOpen && (
+                    <div
+                      className="absolute z-50 w-full mt-2 rounded-xl backdrop-blur-xl border max-h-64 overflow-y-auto"
+                      style={{
+                        backgroundColor: 'var(--bg-secondary)',
+                        borderColor: 'var(--border-primary)',
+                      }}
+                    >
+                      <div className="p-2 border-b" style={{ borderColor: 'var(--border-primary)' }}>
+                        <input
+                          type="text"
+                          value={editCourseSearch}
+                          onChange={(e) => setEditCourseSearch(e.target.value)}
+                          placeholder="Search courses..."
+                          className="w-full px-3 py-2 rounded-lg"
+                          style={{
+                            backgroundColor: 'var(--bg-primary)',
+                            border: '1px solid var(--border-primary)',
+                            color: 'var(--text-primary)',
+                            outline: 'none',
+                          }}
+                        />
+                      </div>
+                      <div className="p-2 space-y-1">
+                        {getFilteredCourses(editCourseSearch).map((course) => (
+                          <label
+                            key={course.id}
+                            className="flex items-center gap-3 p-2 rounded-lg cursor-pointer hover:bg-opacity-50 transition-colors"
+                            style={{ backgroundColor: 'var(--bg-tertiary)' }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={editCourseIds.includes(course.id)}
+                              onChange={() => toggleCourse(course.id, true)}
+                              className="w-4 h-4 rounded"
+                              style={{
+                                accentColor: '#0046FF',
+                              }}
+                            />
+                            <span style={{ color: 'var(--text-primary)' }}>
+                              {course.name} ({course.code})
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                {/* Selected Courses Chips */}
+                {editCourseIds.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {courses
+                      .filter(c => editCourseIds.includes(c.id))
+                      .map((course) => (
+                        <div
+                          key={course.id}
+                          className="px-3 py-1 rounded-full flex items-center gap-2"
+                          style={{
+                            backgroundColor: 'var(--bg-tertiary)',
+                            border: '1px solid var(--border-primary)',
+                          }}
+                        >
+                          <span className="text-sm" style={{ color: 'var(--text-primary)' }}>
+                            {course.code}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => toggleCourse(course.id, true)}
+                            className="text-red-400 hover:text-red-300"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </div>
             </div>
 
               <div className="flex justify-end gap-3 mt-8">
@@ -1127,6 +1751,186 @@ const Students = () => {
                   <AnimatedText speed={40}>
                     {t.students.close}
                   </AnimatedText>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ATTENDANCE HISTORY MODAL */}
+      {attendanceModal.open && attendanceModal.student && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div 
+            className="backdrop-blur-2xl rounded-3xl border shadow-2xl p-8 w-full max-w-3xl max-h-[80vh] overflow-y-auto"
+            style={{
+              backgroundColor: 'var(--bg-secondary)',
+              borderColor: 'var(--border-primary)'
+            }}
+          >
+            <h3 
+              className="text-2xl font-bold mb-6 text-center"
+              style={{ color: 'var(--text-primary)' }}
+            >
+              <AnimatedText speed={35}>
+                {t.students.attendanceHistory} - {attendanceModal.student.firstName} {attendanceModal.student.lastName}
+              </AnimatedText>
+            </h3>
+
+            {attendanceModal.student.attendance.length === 0 ? (
+              <div className="text-center py-12">
+                <p style={{ color: 'var(--text-tertiary)' }}>
+                  {t.students.noAttendanceRecords}
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="grid grid-cols-4 gap-4 pb-2 border-b" style={{ borderColor: 'var(--border-primary)' }}>
+                  <div className="font-semibold text-sm" style={{ color: 'var(--text-secondary)' }}>
+                    {t.students.date}
+                  </div>
+                  <div className="font-semibold text-sm" style={{ color: 'var(--text-secondary)' }}>
+                    {t.students.courseName}
+                  </div>
+                  <div className="font-semibold text-sm" style={{ color: 'var(--text-secondary)' }}>
+                    {t.students.attendanceStatus}
+                  </div>
+                  <div className="font-semibold text-sm" style={{ color: 'var(--text-secondary)' }}>
+                    {t.students.actions}
+                  </div>
+                </div>
+                {attendanceModal.student.attendance
+                  .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                  .map((record) => (
+                    <div
+                      key={record.id}
+                      className="grid grid-cols-4 gap-4 py-3 border-b items-center"
+                      style={{ borderColor: 'var(--border-primary)' }}
+                    >
+                      <div style={{ color: 'var(--text-primary)' }}>
+                        {new Date(record.date).toLocaleDateString()}
+                      </div>
+                      <div style={{ color: 'var(--text-primary)' }}>
+                        {record.courseName} ({record.courseCode})
+                      </div>
+                      <div>
+                        <span
+                          className="px-3 py-1.5 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5"
+                          style={{
+                            backgroundColor: record.status === 'present' 
+                              ? 'rgba(34, 197, 94, 0.15)'
+                              : 'rgba(239, 68, 68, 0.15)',
+                            color: record.status === 'present' ? '#22c55e' : '#ef4444',
+                            border: `1px solid ${record.status === 'present' ? 'rgba(34, 197, 94, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
+                          }}
+                        >
+                          <div
+                            className="w-2 h-2 rounded-full"
+                            style={{ backgroundColor: record.status === 'present' ? '#22c55e' : '#ef4444' }}
+                          />
+                          {record.status === 'present' ? t.students.present : t.students.absent}
+                        </span>
+                      </div>
+                      <div>
+                        <button
+                          onClick={() => {
+                            setAttendanceOverrideModal({ open: true, record, student: attendanceModal.student });
+                          }}
+                          className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 hover:scale-105 active:scale-95 flex items-center gap-2"
+                          style={{
+                            backgroundColor: 'var(--bg-tertiary)',
+                            color: 'var(--text-primary)',
+                            border: '1px solid var(--border-primary)',
+                          }}
+                          title={record.status === 'present' ? t.students.markAsAbsent : t.students.markAsPresent}
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                          {record.status === 'present' ? t.students.markAsAbsent : t.students.markAsPresent}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            )}
+
+            <div className="flex justify-center mt-8">
+              <button
+                className="px-6 py-3 rounded-xl border font-semibold transition-all duration-300 hover:scale-105 active:scale-95"
+                style={{
+                  backgroundColor: 'var(--bg-secondary)',
+                  borderColor: 'var(--border-primary)',
+                  color: 'var(--text-secondary)'
+                }}
+                onClick={() => setAttendanceModal({ open: false })}
+              >
+                <AnimatedText speed={40}>
+                  {t.students.close}
+                </AnimatedText>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ATTENDANCE OVERRIDE CONFIRMATION MODAL */}
+      {attendanceOverrideModal.open && attendanceOverrideModal.record && attendanceOverrideModal.student && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div 
+            className="backdrop-blur-2xl rounded-3xl border shadow-2xl p-8 w-full max-w-md"
+            style={{
+              backgroundColor: 'var(--bg-secondary)',
+              borderColor: 'var(--border-primary)'
+            }}
+          >
+            <h3 
+              className="text-2xl font-bold mb-6 text-center"
+              style={{ color: 'var(--text-primary)' }}
+            >
+              <AnimatedText speed={35}>
+                {t.students.overrideAttendance}
+              </AnimatedText>
+            </h3>
+
+            <p 
+              className="text-center mb-6 text-lg"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              {t.students.confirmAttendanceChange}
+            </p>
+
+            <div className="p-4 rounded-xl mb-6" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
+              <div className="text-sm mb-2" style={{ color: 'var(--text-tertiary)' }}>
+                {new Date(attendanceOverrideModal.record.date).toLocaleDateString()} - {attendanceOverrideModal.record.courseName}
+              </div>
+              <div className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
+                {attendanceOverrideModal.record.status === 'present' 
+                  ? `${t.students.present} → ${t.students.absent}`
+                  : `${t.students.absent} → ${t.students.present}`}
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <button
+                className="px-6 py-3 rounded-xl border font-semibold transition-all duration-300 hover:scale-105 active:scale-95"
+                style={{
+                  backgroundColor: 'var(--bg-secondary)',
+                  borderColor: 'var(--border-primary)',
+                  color: 'var(--text-secondary)'
+                }}
+                onClick={() => setAttendanceOverrideModal({ open: false })}
+              >
+                <AnimatedText speed={40}>
+                  {t.students.cancel}
+                </AnimatedText>
+              </button>
+              <button
+                className="px-6 py-3 rounded-xl bg-gradient-to-r from-[#0046FF] to-[#001BB7] text-white font-semibold shadow-lg shadow-[#0046FF]/25 hover:shadow-[#0046FF]/40 transition-all duration-300 transform hover:scale-105 active:scale-95"
+                onClick={confirmAttendanceOverride}
+              >
+                <AnimatedText speed={40}>
+                  {t.students.confirm}
+                </AnimatedText>
               </button>
             </div>
           </div>
