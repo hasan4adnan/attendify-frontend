@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import AnimatedText from '../components/AnimatedText';
 import ActionMenu, { ActionMenuItem } from '../components/ActionMenu';
+import { saveCourses } from '../utils/courseData';
 
 type Day = 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat' | 'Sun';
 
@@ -67,7 +68,20 @@ const initialCourses: Course[] = [
 
 const Courses = () => {
   const { t } = useLanguage();
-  const [courses, setCourses] = useState<Course[]>(initialCourses);
+  const [courses, setCourses] = useState<Course[]>(() => {
+    // Load from localStorage or use initial
+    const stored = typeof window !== 'undefined' ? localStorage.getItem('courses') : null;
+    if (stored) {
+      try {
+        return JSON.parse(stored);
+      } catch {
+        saveCourses(initialCourses);
+        return initialCourses;
+      }
+    }
+    saveCourses(initialCourses);
+    return initialCourses;
+  });
   const [activeTab, setActiveTab] = useState<'list' | 'add'>('list');
   const [search, setSearch] = useState('');
   const [searchFocused, setSearchFocused] = useState(false);
@@ -251,26 +265,29 @@ const Courses = () => {
 
     if (editModal.course) {
       // Update existing course
-      setCourses(
-        courses.map((c) =>
-          c.id === editModal.course!.id
-            ? {
-                ...c,
-                name: courseName.trim(),
-                code: courseCode.trim(),
-                description: description.trim() || undefined,
-                weeklyHours: Number(weeklyHours),
-                schedule,
-                students: enrolledStudents,
-                room: room.trim() || undefined,
-                semester: semester || undefined,
-                year: year || undefined,
-                category: category || undefined,
-                instructor: instructor.trim() || undefined,
-              }
-            : c
-        )
+      const updatedCourses = courses.map((c) =>
+        c.id === editModal.course!.id
+          ? {
+              ...c,
+              name: courseName.trim(),
+              code: courseCode.trim(),
+              description: description.trim() || undefined,
+              weeklyHours: Number(weeklyHours),
+              schedule,
+              students: enrolledStudents,
+              room: room.trim() || undefined,
+              semester: semester || undefined,
+              year: year || undefined,
+              category: category || undefined,
+              instructor: instructor.trim() || undefined,
+            }
+          : c
       );
+      setCourses(updatedCourses);
+      
+      // Save to localStorage for Students component access
+      saveCourses(updatedCourses);
+      
       setNotification({ show: true, message: t.courses.courseUpdated });
       setEditModal({ open: false });
     } else {
@@ -291,6 +308,9 @@ const Courses = () => {
       };
       setCourses([...courses, newCourse]);
       setNotification({ show: true, message: t.courses.courseAdded });
+      
+      // Save to localStorage for Students component access
+      saveCourses([...courses, newCourse]);
     }
 
     resetForm();
@@ -301,7 +321,12 @@ const Courses = () => {
   // Handle delete course
   const handleDeleteCourse = () => {
     if (deleteModal.course) {
-      setCourses(courses.filter((c) => c.id !== deleteModal.course!.id));
+      const updatedCourses = courses.filter((c) => c.id !== deleteModal.course!.id);
+      setCourses(updatedCourses);
+      
+      // Save to localStorage for Students component access
+      saveCourses(updatedCourses);
+      
       setNotification({ show: true, message: t.courses.courseDeleted });
       setDeleteModal({ open: false });
       setTimeout(() => setNotification({ show: false, message: '' }), 3000);
@@ -867,13 +892,15 @@ const Courses = () => {
                   </button>
                   {studentDropdownOpen && (
                     <div
-                      className="absolute z-50 w-full mt-2 rounded-xl backdrop-blur-xl border max-h-64 overflow-y-auto"
+                      className="absolute z-50 w-full mt-2 rounded-xl border max-h-64 overflow-y-auto"
                       style={{
-                        backgroundColor: 'var(--bg-secondary)',
-                        borderColor: 'var(--border-primary)',
+                        backgroundColor: '#1e1e2d',
+                        borderColor: '#2A2A3B',
+                        backdropFilter: 'none',
+                        opacity: 1,
                       }}
                     >
-                      <div className="p-2 border-b" style={{ borderColor: 'var(--border-primary)' }}>
+                      <div className="p-2 border-b" style={{ borderColor: '#2A2A3B', opacity: 1 }}>
                         <input
                           type="text"
                           value={studentSearch}
@@ -881,10 +908,11 @@ const Courses = () => {
                           placeholder="Search students..."
                           className="w-full px-3 py-2 rounded-lg"
                           style={{
-                            backgroundColor: 'var(--bg-primary)',
-                            border: '1px solid var(--border-primary)',
-                            color: 'var(--text-primary)',
+                            backgroundColor: '#2A2A3B',
+                            border: '1px solid #2A2A3B',
+                            color: '#E4E4E7',
                             outline: 'none',
+                            opacity: 1,
                           }}
                         />
                       </div>
@@ -892,8 +920,14 @@ const Courses = () => {
                         {filteredStudents.map((student) => (
                           <label
                             key={student.id}
-                            className="flex items-center gap-3 p-2 rounded-lg cursor-pointer hover:bg-opacity-50 transition-colors"
-                            style={{ backgroundColor: 'var(--bg-tertiary)' }}
+                            className="flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors"
+                            style={{ backgroundColor: '#1e1e2d', opacity: 1 }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = '#2A2A3B';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = '#1e1e2d';
+                            }}
                           >
                             <input
                               type="checkbox"
@@ -904,7 +938,7 @@ const Courses = () => {
                                 accentColor: '#0046FF',
                               }}
                             />
-                            <span style={{ color: 'var(--text-primary)' }}>
+                            <span style={{ color: '#E4E4E7', opacity: 1 }}>
                               {student.firstName} {student.lastName} ({student.studentNumber})
                             </span>
                           </label>

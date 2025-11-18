@@ -17,11 +17,12 @@ export default function LanguageToggle({ compact = false }: LanguageToggleProps)
     return (
       <button
         onClick={toggleLanguage}
-        className="w-full p-3 backdrop-blur-md rounded-xl border shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all duration-300 group relative overflow-hidden flex items-center justify-center"
+        className="w-full p-3 rounded-xl border shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all duration-300 group relative overflow-hidden flex items-center justify-center"
         style={{
           backgroundColor: 'var(--bg-tertiary)',
           borderColor: 'var(--border-primary)',
-          transition: 'all 600ms cubic-bezier(0.4, 0, 0.2, 1)'
+          transition: 'all 600ms cubic-bezier(0.4, 0, 0.2, 1)',
+          opacity: 1,
         }}
         aria-label="Toggle language"
       >
@@ -30,7 +31,10 @@ export default function LanguageToggle({ compact = false }: LanguageToggleProps)
         />
         <span 
           className="text-sm font-semibold transition-all duration-300 relative z-10"
-          style={{ color: 'var(--text-primary)' }}
+          style={{ 
+            color: 'var(--text-primary)',
+            opacity: 1,
+          }}
         >
           {language === 'en' ? 'EN' : 'TR'}
         </span>
@@ -41,11 +45,12 @@ export default function LanguageToggle({ compact = false }: LanguageToggleProps)
   return (
     <button
       onClick={toggleLanguage}
-      className="w-full px-4 py-3 backdrop-blur-md rounded-xl border shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all duration-300 group relative overflow-hidden flex items-center gap-2"
+      className="w-full px-4 py-3 rounded-xl border shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all duration-300 group relative overflow-hidden flex items-center gap-2"
       style={{
         backgroundColor: 'var(--bg-tertiary)',
         borderColor: 'var(--border-primary)',
-        transition: 'all 600ms cubic-bezier(0.4, 0, 0.2, 1)'
+        transition: 'all 600ms cubic-bezier(0.4, 0, 0.2, 1)',
+        opacity: 1,
       }}
       aria-label="Toggle language"
     >
@@ -54,7 +59,10 @@ export default function LanguageToggle({ compact = false }: LanguageToggleProps)
       />
       <span 
         className="text-sm font-semibold transition-all duration-300 relative z-10"
-        style={{ color: 'var(--text-primary)' }}
+        style={{ 
+          color: 'var(--text-primary)',
+          opacity: 1,
+        }}
       >
         {language === 'en' ? 'EN' : 'TR'}
       </span>
@@ -66,7 +74,8 @@ export default function LanguageToggle({ compact = false }: LanguageToggleProps)
             language === 'en' ? 'scale-100 opacity-100' : 'scale-75 opacity-50'
           }`}
           style={{
-            backgroundColor: language === 'en' ? '#0046FF' : 'var(--text-quaternary)'
+            backgroundColor: language === 'en' ? '#0046FF' : 'var(--text-quaternary)',
+            opacity: language === 'en' ? 1 : 0.5,
           }}
         />
         <div 
@@ -74,7 +83,8 @@ export default function LanguageToggle({ compact = false }: LanguageToggleProps)
             language === 'tr' ? 'scale-100 opacity-100' : 'scale-75 opacity-50'
           }`}
           style={{
-            backgroundColor: language === 'tr' ? '#FF8040' : 'var(--text-quaternary)'
+            backgroundColor: language === 'tr' ? '#FF8040' : 'var(--text-quaternary)',
+            opacity: language === 'tr' ? 1 : 0.5,
           }}
         />
       </div>

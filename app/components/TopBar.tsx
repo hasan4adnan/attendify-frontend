@@ -1,41 +1,84 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useTheme } from '../context/ThemeContext';
-import { useLanguage } from '../context/LanguageContext';
 
 interface TopBarProps {
   mobileMenuOpen: boolean;
   setMobileMenuOpen: (open: boolean) => void;
 }
 
+// Fake admin data
+const adminData = {
+  fullName: 'Dr. John Doe',
+  email: 'john.doe@university.edu',
+  role: 'Administrator',
+  schoolName: 'University of Technology',
+  avatar: null, // In a real app, this would be an image URL
+};
+
+// Fake notifications data
+const notifications = [
+  { 
+    id: 1, 
+    title: 'New attendance record', 
+    message: '245 students marked present today', 
+    timestamp: '2 minutes ago', 
+    unread: true 
+  },
+  { 
+    id: 2, 
+    title: 'Weekly report ready', 
+    message: 'Your weekly attendance report is available for download', 
+    timestamp: '1 hour ago', 
+    unread: true 
+  },
+  { 
+    id: 3, 
+    title: 'System update', 
+    message: 'New features have been added to the dashboard', 
+    timestamp: '3 hours ago', 
+    unread: false 
+  },
+  { 
+    id: 4, 
+    title: 'Reminder', 
+    message: 'Don\'t forget to review this week\'s attendance records', 
+    timestamp: '1 day ago', 
+    unread: false 
+  },
+];
+
 export default function TopBar({ mobileMenuOpen, setMobileMenuOpen }: TopBarProps) {
   const [searchFocused, setSearchFocused] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const { theme, toggleTheme } = useTheme();
-  const { language, setLanguage, t } = useLanguage();
+  const [adminDropdownOpen, setAdminDropdownOpen] = useState(false);
 
-  // Close notifications when clicking outside
+  const unreadCount = notifications.filter(n => n.unread).length;
+
+  // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
       if (notificationsOpen && !target.closest('[data-notifications]')) {
         setNotificationsOpen(false);
       }
+      if (adminDropdownOpen && !target.closest('[data-admin-profile]')) {
+        setAdminDropdownOpen(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [notificationsOpen]);
+  }, [notificationsOpen, adminDropdownOpen]);
 
-  // Fake notifications data
-  const notifications = [
-    { id: 1, title: 'New attendance record', message: '245 students marked present today', time: '2 minutes ago', unread: true },
-    { id: 2, title: 'Weekly report ready', message: 'Your weekly attendance report is available', time: '1 hour ago', unread: true },
-    { id: 3, title: 'System update', message: 'New features have been added to the dashboard', time: '3 hours ago', unread: false },
-    { id: 4, title: 'Reminder', message: 'Don\'t forget to review this week\'s attendance', time: '1 day ago', unread: false },
-  ];
-
-  const unreadCount = notifications.filter(n => n.unread).length;
+  // Get initials for avatar
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(n => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
 
   return (
     <header 
@@ -84,7 +127,7 @@ export default function TopBar({ mobileMenuOpen, setMobileMenuOpen }: TopBarProp
                 borderColor: searchFocused ? '#0046FF' : 'var(--border-primary)',
                 color: 'var(--text-primary)',
               }}
-              placeholder={t.dashboard.searchPlaceholder}
+              placeholder="Search courses, students, or reports..."
             />
             <svg
               className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 transition-colors duration-300"
@@ -108,109 +151,18 @@ export default function TopBar({ mobileMenuOpen, setMobileMenuOpen }: TopBarProp
 
         {/* Right Side Actions */}
         <div className="flex items-center gap-3">
-          {/* Language Toggle - Compact */}
-          <button
-            onClick={() => setLanguage(language === 'en' ? 'tr' : 'en')}
-            className="px-3 py-2 backdrop-blur-md rounded-xl border shadow-lg hover:shadow-xl hover:scale-110 active:scale-95 transition-all duration-300 flex items-center gap-2 group relative overflow-hidden"
-            style={{
-              backgroundColor: 'var(--bg-secondary)',
-              borderColor: 'var(--border-primary)',
-              transition: 'all 600ms cubic-bezier(0.4, 0, 0.2, 1)'
-            }}
-            aria-label="Toggle language"
-          >
-            <div 
-              className="absolute inset-0 bg-gradient-to-r from-[#0046FF]/10 to-[#FF8040]/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl"
-            />
-            <span 
-              className="text-sm font-semibold transition-all duration-300 relative z-10"
-              style={{ color: 'var(--text-primary)' }}
-            >
-              {language === 'en' ? 'EN' : 'TR'}
-            </span>
-            <div className="flex gap-1 relative z-10">
-              <div 
-                className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
-                  language === 'en' ? 'scale-100 opacity-100' : 'scale-75 opacity-50'
-                }`}
-                style={{
-                  backgroundColor: language === 'en' ? '#0046FF' : 'var(--text-quaternary)'
-                }}
-              />
-              <div 
-                className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
-                  language === 'tr' ? 'scale-100 opacity-100' : 'scale-75 opacity-50'
-                }`}
-                style={{
-                  backgroundColor: language === 'tr' ? '#FF8040' : 'var(--text-quaternary)'
-                }}
-              />
-            </div>
-          </button>
-
-          {/* Theme Toggle - Compact */}
-          <button
-            onClick={toggleTheme}
-            className="p-3 backdrop-blur-md rounded-xl border shadow-lg hover:shadow-xl hover:scale-110 active:scale-95 transition-all duration-300 group relative overflow-hidden"
-            style={{
-              backgroundColor: 'var(--bg-secondary)',
-              borderColor: 'var(--border-primary)',
-              transition: 'all 600ms cubic-bezier(0.4, 0, 0.2, 1)'
-            }}
-            aria-label="Toggle theme"
-          >
-            <div 
-              className="absolute inset-0 bg-gradient-to-r from-[#0046FF]/10 to-[#FF8040]/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl"
-            />
-            <div className="relative w-5 h-5 z-10">
-              {/* Sun Icon (Light Mode) */}
-              <svg
-                className={`absolute inset-0 w-5 h-5 text-[#FF8040] transition-all duration-500 ${
-                  theme === 'light'
-                    ? 'rotate-0 scale-100 opacity-100'
-                    : 'rotate-90 scale-0 opacity-0'
-                }`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
-                />
-              </svg>
-
-              {/* Moon Icon (Dark Mode) */}
-              <svg
-                className={`absolute inset-0 w-5 h-5 text-[#0046FF] transition-all duration-500 ${
-                  theme === 'dark'
-                    ? 'rotate-0 scale-100 opacity-100'
-                    : '-rotate-90 scale-0 opacity-0'
-                }`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
-                />
-              </svg>
-            </div>
-          </button>
-
           {/* Notifications */}
           <div className="relative" data-notifications>
             <button
-              onClick={() => setNotificationsOpen(!notificationsOpen)}
+              onClick={() => {
+                setNotificationsOpen(!notificationsOpen);
+                setAdminDropdownOpen(false);
+              }}
               className="p-3 rounded-xl hover:scale-110 active:scale-95 transition-all duration-300 relative group"
               style={{
                 backgroundColor: 'var(--bg-tertiary)',
-                color: 'var(--text-primary)'
+                color: 'var(--text-primary)',
+                border: '1px solid var(--border-primary)'
               }}
               aria-label="Notifications"
             >
@@ -227,10 +179,13 @@ export default function TopBar({ mobileMenuOpen, setMobileMenuOpen }: TopBarProp
               </svg>
               {unreadCount > 0 && (
                 <span 
-                  className="absolute top-2 right-2 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-lg animate-pulse"
-                  style={{ backgroundColor: '#FF8040' }}
+                  className="absolute top-1.5 right-1.5 min-w-[18px] h-[18px] rounded-full flex items-center justify-center text-[10px] font-bold text-white shadow-lg"
+                  style={{ 
+                    backgroundColor: '#FF8040',
+                    padding: '0 4px'
+                  }}
                 >
-                  {unreadCount}
+                  {unreadCount > 9 ? '9+' : unreadCount}
                 </span>
               )}
             </button>
@@ -238,23 +193,42 @@ export default function TopBar({ mobileMenuOpen, setMobileMenuOpen }: TopBarProp
             {/* Notifications Dropdown */}
             {notificationsOpen && (
               <div 
-                className="absolute right-0 top-full mt-2 w-80 backdrop-blur-2xl rounded-2xl border shadow-2xl overflow-hidden z-50 animate-in slide-in-from-top-2 duration-200"
+                className="absolute right-0 top-full mt-2 w-96 rounded-2xl border shadow-2xl overflow-hidden z-50 animate-in slide-in-from-top-2 duration-200"
                 style={{
-                  backgroundColor: 'var(--bg-secondary)',
-                  borderColor: 'var(--border-primary)'
+                  backgroundColor: '#1e1e2d',
+                  borderColor: '#2A2A3B',
+                  maxHeight: '420px',
+                  opacity: 1,
+                  backdropFilter: 'none',
                 }}
               >
-                <div className="p-4 border-b" style={{ borderColor: 'var(--border-primary)' }}>
+                {/* Header */}
+                <div 
+                  className="p-4 border-b" 
+                  style={{ 
+                    borderColor: '#2A2A3B',
+                    backgroundColor: '#1e1e2d',
+                    opacity: 1,
+                  }}
+                >
                   <div className="flex items-center justify-between">
-                    <h3 className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>
+                    <h3 
+                      className="font-bold text-lg"
+                      style={{ 
+                        color: '#E4E4E7',
+                        opacity: 1,
+                      }}
+                    >
                       Notifications
                     </h3>
                     {unreadCount > 0 && (
                       <span 
-                        className="px-2 py-1 rounded-lg text-xs font-semibold"
+                        className="px-3 py-1 rounded-lg text-xs font-semibold"
                         style={{
-                          backgroundColor: 'rgba(255, 128, 64, 0.15)',
-                          color: '#FF8040'
+                          backgroundColor: '#FF8040',
+                          color: '#ffffff',
+                          border: '1px solid #FF8040',
+                          opacity: 1,
                         }}
                       >
                         {unreadCount} new
@@ -262,50 +236,252 @@ export default function TopBar({ mobileMenuOpen, setMobileMenuOpen }: TopBarProp
                     )}
                   </div>
                 </div>
-                <div className="max-h-96 overflow-y-auto">
-                  {notifications.map((notification) => (
-                    <div
-                      key={notification.id}
-                      className={`p-4 border-b transition-all duration-200 hover:bg-opacity-50 cursor-pointer ${
-                        notification.unread ? 'bg-opacity-30' : ''
-                      }`}
-                      style={{
-                        borderColor: 'var(--border-primary)',
-                        backgroundColor: notification.unread ? 'var(--bg-tertiary)' : 'transparent'
-                      }}
-                      onClick={() => {
-                        // Mark as read logic here
-                        setNotificationsOpen(false);
-                      }}
-                    >
-                      <div className="flex items-start gap-3">
-                        <div 
-                          className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${
-                            notification.unread ? 'bg-[#0046FF]' : 'bg-transparent'
-                          }`}
-                        />
-                        <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-sm mb-1" style={{ color: 'var(--text-primary)' }}>
-                            {notification.title}
-                          </p>
-                          <p className="text-sm mb-2" style={{ color: 'var(--text-tertiary)' }}>
-                            {notification.message}
-                          </p>
-                          <p className="text-xs" style={{ color: 'var(--text-quaternary)' }}>
-                            {notification.time}
-                          </p>
+
+                {/* Notifications List */}
+                <div 
+                  className="max-h-[320px] overflow-y-auto"
+                  style={{
+                    backgroundColor: '#1e1e2d',
+                    opacity: 1,
+                  }}
+                >
+                  {notifications.length === 0 ? (
+                    <div className="p-8 text-center">
+                      <p style={{ 
+                        color: '#E4E4E7',
+                        opacity: 1,
+                      }}>No notifications</p>
+                    </div>
+                  ) : (
+                    notifications.map((notification) => (
+                      <div
+                        key={notification.id}
+                        className="p-4 border-b transition-all duration-200 cursor-pointer"
+                        style={{
+                          borderColor: '#2A2A3B',
+                          backgroundColor: notification.unread ? '#2A2A3B' : '#1e1e2d',
+                          opacity: 1,
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = '#2A2A3B';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = notification.unread ? '#2A2A3B' : '#1e1e2d';
+                        }}
+                        onClick={() => {
+                          setNotificationsOpen(false);
+                        }}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div 
+                            className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${
+                              notification.unread ? 'bg-[#0046FF]' : 'bg-transparent'
+                            }`}
+                            style={{ opacity: 1 }}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p 
+                              className="font-semibold text-sm mb-1.5"
+                              style={{ 
+                                color: '#E4E4E7',
+                                opacity: 1,
+                              }}
+                            >
+                              {notification.title}
+                            </p>
+                            <p 
+                              className="text-sm mb-2 leading-relaxed"
+                              style={{ 
+                                color: '#E4E4E7',
+                                opacity: 1,
+                              }}
+                            >
+                              {notification.message}
+                            </p>
+                            <p 
+                              className="text-xs"
+                              style={{ 
+                                color: '#E4E4E7',
+                                opacity: 1,
+                              }}
+                            >
+                              {notification.timestamp}
+                            </p>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
-                <div className="p-3 border-t text-center" style={{ borderColor: 'var(--border-primary)' }}>
-                  <button
-                    className="text-sm font-medium text-[#0046FF] hover:text-[#FF8040] transition-colors duration-200"
-                    onClick={() => setNotificationsOpen(false)}
+
+                {/* Footer */}
+                {unreadCount > 0 && (
+                  <div 
+                    className="p-3 border-t text-center" 
+                    style={{ 
+                      borderColor: '#2A2A3B',
+                      backgroundColor: '#1e1e2d',
+                      opacity: 1,
+                    }}
                   >
-                    Mark all as read
-                  </button>
+                    <button
+                      className="text-sm font-medium transition-colors duration-200"
+                      style={{ 
+                        color: '#0046FF',
+                        opacity: 1,
+                      }}
+                      onClick={() => setNotificationsOpen(false)}
+                    >
+                      Mark all as read
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Admin Profile Button */}
+          <div className="relative" data-admin-profile>
+            <button
+              onClick={() => {
+                setAdminDropdownOpen(!adminDropdownOpen);
+                setNotificationsOpen(false);
+              }}
+              className="w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm transition-all duration-300 hover:scale-110 active:scale-95 group relative overflow-hidden border-2"
+              style={{
+                backgroundColor: 'var(--bg-tertiary)',
+                borderColor: adminDropdownOpen ? '#0046FF' : 'var(--border-primary)',
+                color: 'var(--text-primary)',
+              }}
+              aria-label="Admin profile"
+            >
+              <div 
+                className="absolute inset-0 bg-gradient-to-br from-[#0046FF] to-[#001BB7] opacity-0 group-hover:opacity-20 transition-opacity duration-300 rounded-full"
+              />
+              {adminData.avatar ? (
+                <img 
+                  src={adminData.avatar} 
+                  alt={adminData.fullName}
+                  className="w-full h-full rounded-full object-cover relative z-10"
+                />
+              ) : (
+                <span className="relative z-10">
+                  {getInitials(adminData.fullName)}
+                </span>
+              )}
+            </button>
+
+            {/* Admin Dropdown */}
+            {adminDropdownOpen && (
+              <div
+                className="absolute right-0 top-full mt-2 w-80 rounded-2xl border shadow-2xl z-50 animate-in slide-in-from-top-2 duration-200 overflow-hidden"
+                style={{
+                  backgroundColor: '#1e1e2d',
+                  borderColor: '#2A2A3B',
+                  opacity: 1,
+                  backdropFilter: 'none',
+                }}
+              >
+                {/* Profile Header */}
+                <div 
+                  className="p-5 border-b"
+                  style={{ 
+                    borderColor: '#2A2A3B',
+                    backgroundColor: '#1e1e2d',
+                    opacity: 1,
+                  }}
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="w-12 h-12 rounded-full flex items-center justify-center font-bold text-base border-2 flex-shrink-0"
+                      style={{
+                        backgroundColor: '#2A2A3B',
+                        borderColor: '#2A2A3B',
+                        color: '#E4E4E7',
+                        opacity: 1,
+                      }}
+                    >
+                      {adminData.avatar ? (
+                        <img 
+                          src={adminData.avatar} 
+                          alt={adminData.fullName}
+                          className="w-full h-full rounded-full object-cover"
+                        />
+                      ) : (
+                        getInitials(adminData.fullName)
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 
+                        className="font-bold text-base mb-0.5 truncate"
+                        style={{ 
+                          color: '#E4E4E7',
+                          opacity: 1,
+                        }}
+                      >
+                        {adminData.fullName}
+                      </h4>
+                      <p 
+                        className="text-sm truncate"
+                        style={{ 
+                          color: '#E4E4E7',
+                          opacity: 1,
+                        }}
+                      >
+                        {adminData.email}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Profile Details */}
+                <div 
+                  className="p-4 space-y-3"
+                  style={{
+                    backgroundColor: '#1e1e2d',
+                    opacity: 1,
+                  }}
+                >
+                  <div>
+                    <p 
+                      className="text-xs mb-1.5 font-medium"
+                      style={{ 
+                        color: '#E4E4E7',
+                        opacity: 1,
+                      }}
+                    >
+                      Role
+                    </p>
+                    <p 
+                      className="text-sm font-medium"
+                      style={{ 
+                        color: '#E4E4E7',
+                        opacity: 1,
+                      }}
+                    >
+                      {adminData.role}
+                    </p>
+                  </div>
+                  <div>
+                    <p 
+                      className="text-xs mb-1.5 font-medium"
+                      style={{ 
+                        color: '#E4E4E7',
+                        opacity: 1,
+                      }}
+                    >
+                      School
+                    </p>
+                    <p 
+                      className="text-sm font-medium"
+                      style={{ 
+                        color: '#E4E4E7',
+                        opacity: 1,
+                      }}
+                    >
+                      {adminData.schoolName}
+                    </p>
+                  </div>
                 </div>
               </div>
             )}
