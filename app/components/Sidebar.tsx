@@ -66,7 +66,7 @@ export default function Sidebar({
       {/* Sidebar */}
       <aside
         className={`
-          fixed lg:static inset-y-0 left-0 z-50
+          fixed inset-y-0 left-0 z-50
           flex flex-col
           backdrop-blur-2xl border-r shadow-2xl
           ${sidebarCollapsed ? 'w-20' : 'w-72'}

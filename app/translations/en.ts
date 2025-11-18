@@ -297,6 +297,59 @@ export const translations = {
     roomPlaceholder: 'Enter room number',
     instructorPlaceholder: 'Enter instructor name',
   },
+
+  // Attendance Page
+  attendance: {
+    title: 'Attendance',
+    subtitle: 'Take attendance for your courses using face verification',
+    selectCourse: 'Select Course',
+    selectCoursePlaceholder: 'Choose a course to start attendance',
+    noCourseSelected: 'No course selected',
+    startSession: 'Start Session',
+    startAttendanceSession: 'Start Attendance Session',
+    startAttendanceSubtitle: 'Select a course and begin face verification attendance',
+    readyToStart: 'Ready to Start Attendance?',
+    previousRecords: 'Previous Attendance Records',
+    noPreviousRecords: 'No previous attendance records',
+    sessionDate: 'Session Date',
+    studentsPresent: 'Students Present',
+    studentsAbsent: 'Students Absent',
+    viewDetails: 'View Details',
+    // Pre-check popup
+    preCheckTitle: 'Preparing Attendance Session',
+    preCheckSubtitle: 'Please wait while we prepare the system',
+    courseSelected: 'Course Selected',
+    cameraDetected: 'Camera Detected',
+    systemReady: 'System Ready',
+    initializingSession: 'Initializing Session',
+    // Camera session
+    liveSessionTitle: 'Live Attendance Session',
+    liveSessionSubtitle: 'Students should show their face to be recognized',
+    endSession: 'End Session',
+    pauseSession: 'Pause Session',
+    resumeSession: 'Resume Session',
+    sessionActive: 'Session Active',
+    // End session confirmation
+    endSessionConfirmTitle: 'End Attendance Session?',
+    endSessionConfirmText: 'Are you sure you want to end this session? This action cannot be undone.',
+    // End session
+    endingSession: 'Ending Session',
+    savingFaces: 'Saving Faces',
+    analyzingData: 'Analyzing Attendance Data',
+    generatingReport: 'Generating Report',
+    finalizingSession: 'Finalizing Session',
+    completed: 'Completed',
+    // Success screen
+    sessionCompleted: 'Attendance Session Completed',
+    sessionCompletedSubtitle: 'Your attendance session has been successfully completed and saved.',
+    studentsMarked: 'Students Marked',
+    sessionDuration: 'Session Duration',
+    close: 'Close',
+    // Errors
+    noCourseSelectedError: 'Please select a course before starting a session',
+    cameraNotAvailable: 'Camera not available',
+    sessionError: 'An error occurred during the session',
+  },
 };
 
 export type TranslationKey = keyof typeof translations;

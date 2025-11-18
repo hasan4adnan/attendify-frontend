@@ -12,16 +12,20 @@ export default function MainLayout({ children }: MainLayoutProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(false);
 
   // Handle initial mount for smooth animations
   useEffect(() => {
     setMounted(true);
+    setIsDesktop(window.innerWidth >= 1024);
   }, []);
 
-  // Close mobile menu on resize
+  // Close mobile menu on resize and update desktop state
   useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth >= 1024) {
+      const desktop = window.innerWidth >= 1024;
+      setIsDesktop(desktop);
+      if (desktop) {
         setMobileMenuOpen(false);
       }
     };
@@ -29,9 +33,18 @@ export default function MainLayout({ children }: MainLayoutProps) {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Update CSS variable for sidebar width
+  useEffect(() => {
+    const sidebarWidth = sidebarCollapsed ? '80px' : '288px';
+    document.documentElement.style.setProperty('--sidebar-width', sidebarWidth);
+  }, [sidebarCollapsed]);
+
+  // Calculate sidebar width for padding
+  const sidebarWidth = sidebarCollapsed ? 80 : 288;
+
   return (
     <div 
-      className={`min-h-screen flex relative overflow-hidden ${mounted ? 'opacity-100' : 'opacity-0'}`}
+      className={`min-h-screen ${mounted ? 'opacity-100' : 'opacity-0'}`}
       style={{ 
         backgroundColor: 'var(--bg-primary)',
         transition: 'opacity 200ms ease-out',
@@ -45,15 +58,27 @@ export default function MainLayout({ children }: MainLayoutProps) {
         setMobileMenuOpen={setMobileMenuOpen}
       />
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0 relative z-10">
+      {/* Main Content Area - with padding for fixed sidebar and topbar */}
+      <div 
+        className="flex flex-col min-h-screen"
+        style={{
+          paddingLeft: isDesktop ? `${sidebarWidth}px` : '0',
+          transition: 'padding-left 300ms cubic-bezier(0.4, 0, 0.2, 1)'
+        }}
+      >
         <TopBar
           mobileMenuOpen={mobileMenuOpen}
           setMobileMenuOpen={setMobileMenuOpen}
+          sidebarCollapsed={sidebarCollapsed}
         />
 
-        {/* Page Content */}
-        <main className="flex-1 overflow-y-auto">
+        {/* Page Content - scrollable */}
+        <main 
+          className="flex-1 overflow-y-auto"
+          style={{
+            paddingTop: '80px' // Topbar height
+          }}
+        >
           {children}
         </main>
       </div>
