@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useLanguage } from '../context/LanguageContext';
+import { useUser } from '../context/UserContext';
 import AnimatedText from './AnimatedText';
 import LanguageToggle from './LanguageToggle';
 
@@ -20,13 +21,16 @@ export default function Sidebar({
   setMobileMenuOpen,
 }: SidebarProps) {
   const [hoveredMenuItem, setHoveredMenuItem] = useState<string | null>(null);
+  const [hoveredProfile, setHoveredProfile] = useState(false);
   const { t } = useLanguage();
+  const { user } = useUser();
   const router = useRouter();
   const pathname = usePathname();
 
   const menuItems = [
     { key: 'dashboard', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6', path: '/dashboard' },
     { key: 'students', icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z', path: '/students' },
+    { key: 'courses', icon: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253', path: '/courses' },
     { key: 'attendance', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01', path: '/attendance' },
     { key: 'reports', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z', path: '/reports' },
     { key: 'settings', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z', path: '/settings' },
@@ -214,7 +218,7 @@ export default function Sidebar({
             </div>
 
             {/* User Info (when expanded) */}
-            {!sidebarCollapsed && (
+            {!sidebarCollapsed && user && (
               <div 
                 className="p-3 border-t"
                 style={{ 
@@ -222,19 +226,82 @@ export default function Sidebar({
                   transition: 'opacity 250ms ease-in-out'
                 }}
               >
-                <div className="flex items-center gap-3 p-3 rounded-xl" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-r from-[#0046FF] to-[#001BB7] flex items-center justify-center text-white font-semibold shadow-lg shadow-[#0046FF]/25 flex-shrink-0">
-                    JD
+                <button
+                  onMouseEnter={() => setHoveredProfile(true)}
+                  onMouseLeave={() => setHoveredProfile(false)}
+                  onClick={() => {
+                    router.push('/profile');
+                    if (window.innerWidth < 1024) {
+                      setMobileMenuOpen(false);
+                    }
+                  }}
+                  className={`
+                    w-full flex items-center gap-3 p-3 rounded-xl
+                    transition-all duration-300 relative overflow-hidden group
+                    ${pathname === '/profile' 
+                      ? 'bg-gradient-to-r from-[#0046FF] to-[#001BB7] text-white shadow-lg shadow-[#0046FF]/30' 
+                      : 'hover:scale-[1.02]'
+                    }
+                  `}
+                  style={pathname !== '/profile' ? {
+                    backgroundColor: hoveredProfile ? 'var(--bg-tertiary)' : 'var(--bg-tertiary)',
+                    color: 'var(--text-primary)',
+                    border: hoveredProfile ? '1px solid var(--border-secondary)' : '1px solid transparent'
+                  } : {}}
+                >
+                  {/* Active indicator bar */}
+                  {pathname === '/profile' && (
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-[#FF8040] to-[#FF6B35] rounded-r-full" />
+                  )}
+                  
+                  {/* Hover gradient effect */}
+                  {pathname !== '/profile' && (
+                    <div 
+                      className="absolute inset-0 bg-gradient-to-r from-[#0046FF]/10 to-[#001BB7]/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl"
+                    />
+                  )}
+
+                  {/* Avatar */}
+                  <div className="relative z-10 flex-shrink-0">
+                    {user.avatar ? (
+                      <img 
+                        src={user.avatar} 
+                        alt={`${user.firstName} ${user.lastName}`}
+                        className="w-10 h-10 rounded-full object-cover shadow-lg shadow-[#0046FF]/25"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-r from-[#0046FF] to-[#001BB7] flex items-center justify-center text-white font-semibold shadow-lg shadow-[#0046FF]/25">
+                        {user.firstName.charAt(0)}{user.lastName.charAt(0)}
+                      </div>
+                    )}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
-                      John Doe
+
+                  {/* User Info */}
+                  <div className="flex-1 min-w-0 relative z-10">
+                    <p className="text-sm font-semibold truncate">
+                      {user.firstName} {user.lastName}
                     </p>
-                    <p className="text-xs truncate" style={{ color: 'var(--text-quaternary)' }}>
-                      Administrator
+                    <p className="text-xs truncate" style={{ 
+                      color: pathname === '/profile' 
+                        ? 'rgba(255, 255, 255, 0.8)' 
+                        : 'var(--text-quaternary)' 
+                    }}>
+                      {user.role}
                     </p>
                   </div>
-                </div>
+
+                  {/* Hover arrow indicator */}
+                  {pathname !== '/profile' && hoveredProfile && (
+                    <svg
+                      className="w-4 h-4 text-[#0046FF] animate-in slide-in-from-right-2 duration-300 relative z-10"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  )}
+                </button>
               </div>
             )}
           </div>
