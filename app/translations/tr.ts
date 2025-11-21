@@ -37,6 +37,12 @@ export const translations = {
     benefit2: 'Otomatik raporlar ve analitik',
     benefit3: 'Güvenli ve güvenilir platform',
     
+    // University slide
+    universityTitle: 'Üniversitenizi seçin',
+    universitySubtitle: 'Bağlı olduğunuz üniversiteyi seçin',
+    universityLabel: 'Üniversite',
+    universityPlaceholder: 'Bir üniversite seçin',
+    
     // Email slide
     emailTitle: 'Hadi başlayalım',
     emailSubtitle: 'Hesabınızı oluşturmak için e-posta adresinizi girin',

@@ -37,6 +37,12 @@ export const translations = {
     benefit2: 'Automated reports and analytics',
     benefit3: 'Secure and reliable platform',
     
+    // University slide
+    universityTitle: 'Select your university',
+    universitySubtitle: 'Choose the university you are affiliated with',
+    universityLabel: 'University',
+    universityPlaceholder: 'Select a university',
+    
     // Email slide
     emailTitle: "Let's get started",
     emailSubtitle: 'Enter your email address to create your account',
