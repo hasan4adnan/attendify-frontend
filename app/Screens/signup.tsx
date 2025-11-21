@@ -6,22 +6,34 @@ import { useLanguage } from '../context/LanguageContext';
 import { useRouter } from 'next/navigation';
 import AnimatedText from '../components/AnimatedText';
 
-type Slide = 'intro' | 'email' | 'name' | 'password' | 'verification';
+type Slide = 'intro' | 'university' | 'email' | 'name' | 'password' | 'verification';
+
+const universities = [
+  'Maltepe University',
+  'Istanbul University',
+  'Bogazici University',
+  'Middle East Technical University',
+  'Istanbul Technical University',
+  'Ankara University',
+  'Hacettepe University'
+];
 
 export default function SignUpPage() {
   const [currentSlide, setCurrentSlide] = useState<Slide>('intro');
   const [email, setEmail] = useState('');
+  const [university, setUniversity] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [verificationCode, setVerificationCode] = useState('');
   const [focused, setFocused] = useState<string | null>(null);
+  const [isUniversityDropdownOpen, setIsUniversityDropdownOpen] = useState(false);
   const { theme } = useTheme();
   const { t } = useLanguage();
   const router = useRouter();
 
-  const slides: Slide[] = ['intro', 'email', 'name', 'password', 'verification'];
+  const slides: Slide[] = ['intro', 'university', 'email', 'name', 'password', 'verification'];
   const currentIndex = slides.indexOf(currentSlide);
 
   const nextSlide = () => {
@@ -42,6 +54,7 @@ export default function SignUpPage() {
       // Handle final submission
       console.log('Sign up completed:', {
         email,
+        university,
         firstName,
         lastName,
         password,
@@ -58,6 +71,8 @@ export default function SignUpPage() {
     switch (currentSlide) {
       case 'intro':
         return true;
+      case 'university':
+        return university.length > 0;
       case 'email':
         return email.length > 0 && email.includes('@');
       case 'name':
@@ -139,6 +154,117 @@ export default function SignUpPage() {
                     </AnimatedText>
                   </li>
                 </ul>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'university':
+        return (
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <h2 
+                className="text-3xl font-bold"
+                style={{ color: 'var(--text-primary)' }}
+              >
+                <AnimatedText speed={35}>
+                  {t.signup.universityTitle}
+                </AnimatedText>
+              </h2>
+              <p 
+                style={{ color: 'var(--text-tertiary)' }}
+              >
+                <AnimatedText speed={40}>
+                  {t.signup.universitySubtitle}
+                </AnimatedText>
+              </p>
+            </div>
+            <div className="space-y-2">
+              <label 
+                htmlFor="university" 
+                className="block text-sm font-medium"
+                style={{ color: 'var(--text-secondary)' }}
+              >
+                <AnimatedText speed={50}>
+                  {t.signup.universityLabel}
+                </AnimatedText>
+              </label>
+              <div className="relative">
+                <button
+                  type="button"
+                  id="university"
+                  onClick={() => setIsUniversityDropdownOpen(!isUniversityDropdownOpen)}
+                  onFocus={() => setFocused('university')}
+                  onBlur={(e) => {
+                    // Don't close if clicking inside the dropdown
+                    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                      setFocused(null);
+                      setTimeout(() => setIsUniversityDropdownOpen(false), 200);
+                    }
+                  }}
+                  className="w-full px-4 py-4 rounded-xl border transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-[#0046FF]/50 text-left flex items-center justify-between"
+                  style={{
+                    backgroundColor: 'var(--bg-tertiary)',
+                    borderColor: focused === 'university' || isUniversityDropdownOpen ? '#0046FF' : 'var(--border-primary)',
+                    color: university ? 'var(--text-primary)' : 'var(--text-tertiary)',
+                  }}
+                >
+                  <span>{university || t.signup.universityPlaceholder}</span>
+                  <svg
+                    className={`w-5 h-5 transition-transform duration-300 ${isUniversityDropdownOpen ? 'rotate-180' : ''}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {(focused === 'university' || isUniversityDropdownOpen) && (
+                  <div 
+                    className="absolute inset-0 rounded-xl pointer-events-none -z-10 blur-xl transition-opacity duration-300"
+                    style={{
+                      background: 'linear-gradient(to right, rgba(0, 70, 255, 0.2), rgba(0, 27, 183, 0.2))'
+                    }}
+                  />
+                )}
+                {isUniversityDropdownOpen && (
+                  <div
+                    className="absolute z-50 w-full mt-2 rounded-xl border shadow-lg max-h-60 overflow-auto"
+                    style={{
+                      backgroundColor: 'var(--bg-tertiary)',
+                      borderColor: 'var(--border-primary)',
+                    }}
+                  >
+                    {universities.map((uni) => (
+                      <button
+                        key={uni}
+                        type="button"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          setUniversity(uni);
+                          setIsUniversityDropdownOpen(false);
+                        }}
+                        className="w-full px-4 py-3 text-left transition-colors duration-200 first:rounded-t-xl last:rounded-b-xl"
+                        style={{
+                          color: 'var(--text-primary)',
+                          backgroundColor: university === uni ? 'var(--bg-secondary)' : 'transparent',
+                        }}
+                        onMouseEnter={(e) => {
+                          if (university !== uni) {
+                            e.currentTarget.style.backgroundColor = 'var(--bg-secondary)';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (university !== uni) {
+                            e.currentTarget.style.backgroundColor = 'transparent';
+                          }
+                        }}
+                      >
+                        {uni}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>
