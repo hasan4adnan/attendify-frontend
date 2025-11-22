@@ -15,7 +15,11 @@ const universities = [
   'Middle East Technical University',
   'Istanbul Technical University',
   'Ankara University',
-  'Hacettepe University'
+  'Hacettepe University',
+  'Ege University',
+  'Gazi University',
+  'Yildiz Technical University',
+  'Koc University',
 ];
 
 // Educational email domains
