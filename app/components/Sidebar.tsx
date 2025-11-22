@@ -22,6 +22,7 @@ export default function Sidebar({
 }: SidebarProps) {
   const [hoveredMenuItem, setHoveredMenuItem] = useState<string | null>(null);
   const [hoveredProfile, setHoveredProfile] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const { t } = useLanguage();
   const { user } = useUser();
   const router = useRouter();
@@ -44,13 +45,18 @@ export default function Sidebar({
 
   const handleMenuItemClick = (item: typeof menuItems[0]) => {
     if (item.key === 'logout') {
-      router.push('/');
+      setShowLogoutModal(true);
     } else {
       router.push(item.path);
     }
     if (window.innerWidth < 1024) {
       setMobileMenuOpen(false);
     }
+  };
+
+  const handleConfirmLogout = () => {
+    setShowLogoutModal(false);
+    router.push('/');
   };
 
   return (
@@ -307,6 +313,59 @@ export default function Sidebar({
           </div>
         </nav>
       </aside>
+
+      {/* Logout Confirmation Modal */}
+      {showLogoutModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
+          <div
+            className="w-full max-w-md rounded-3xl border shadow-2xl p-8 space-y-6 animate-in scale-in"
+            style={{
+              backgroundColor: 'var(--bg-secondary)',
+              borderColor: '#FF8040/30',
+            }}
+          >
+            <div className="text-center space-y-2">
+              <div className="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-[#FF8040] to-[#FF4000] flex items-center justify-center">
+                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+              </div>
+              <h3 
+                className="text-2xl font-bold"
+                style={{ color: 'var(--text-primary)' }}
+              >
+                {t.common.logoutConfirm}
+              </h3>
+              <p 
+                className="text-base"
+                style={{ color: 'var(--text-tertiary)' }}
+              >
+                {t.common.logoutWarning}
+              </p>
+            </div>
+
+            <div className="flex items-center justify-center gap-4">
+              <button
+                onClick={() => setShowLogoutModal(false)}
+                className="px-6 py-3 rounded-xl font-semibold transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
+                style={{
+                  backgroundColor: 'var(--bg-tertiary)',
+                  color: 'var(--text-primary)',
+                  border: '1px solid var(--border-primary)',
+                }}
+              >
+                {t.common.no}
+              </button>
+              <button
+                onClick={handleConfirmLogout}
+                className="px-6 py-3 bg-gradient-to-r from-[#FF8040] to-[#FF4000] text-white font-semibold rounded-xl shadow-lg shadow-[#FF8040]/25 hover:shadow-[#FF8040]/40 focus:outline-none focus:ring-2 focus:ring-[#FF8040] focus:ring-offset-2 focus:ring-offset-transparent transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] flex items-center gap-2"
+              >
+                {t.common.yes}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

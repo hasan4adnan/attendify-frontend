@@ -16,7 +16,7 @@ import React, { useRef } from 'react';
 
 
 export default function TermsPrivacyModal({ open, onClose, type }: TermsPrivacyModalProps) {
-  const { theme } = useTheme();
+  const { actualTheme } = useTheme();
   const modalRef = useRef<HTMLDivElement>(null);
   if (!open) return null;
   const content = type === 'terms' ? TERMS : PRIVACY;
@@ -38,7 +38,7 @@ export default function TermsPrivacyModal({ open, onClose, type }: TermsPrivacyM
     <div
       className={`fixed inset-0 z-50 flex items-center justify-center animate-fadeIn`}
       style={{
-        background: theme === 'dark'
+        background: actualTheme === 'dark'
           ? 'rgba(10,16,32,0.96)'
           : 'rgba(0,16,64,0.18)',
         backdropFilter: 'blur(4px)'
@@ -48,7 +48,7 @@ export default function TermsPrivacyModal({ open, onClose, type }: TermsPrivacyM
       <div
         ref={modalRef}
         className="relative w-full max-w-2xl mx-4 bg-gradient-to-br from-white via-[#f6f8ff] to-[#eaf0ff] dark:from-[#181A20] dark:via-[#23263a] dark:to-[#1a1d2b] rounded-3xl shadow-2xl overflow-hidden animate-slideUp border border-[#e0e7ff] dark:border-[#23263a]"
-        style={{ boxShadow: theme === 'dark' ? '0 8px 40px 0 #000a, 0 1.5px 8px 0 #0046ff33' : undefined }}
+        style={{ boxShadow: actualTheme === 'dark' ? '0 8px 40px 0 #000a, 0 1.5px 8px 0 #0046ff33' : undefined }}
         onClick={e => e.stopPropagation()}
       >
         <button
@@ -64,9 +64,9 @@ export default function TermsPrivacyModal({ open, onClose, type }: TermsPrivacyM
             <span className="block text-2xl md:text-3xl font-extrabold bg-gradient-to-r from-[#0046FF] to-[#FF8040] bg-clip-text text-transparent tracking-tight" style={{ fontFamily: 'Inter, Segoe UI, Arial, sans-serif', letterSpacing: '-0.01em' }}>{title}</span>
             <span className="block text-xs text-gray-500 dark:text-gray-400 mt-1 font-medium" style={{ fontFamily: 'Inter, Segoe UI, Arial, sans-serif' }}>{effective} &nbsp;|&nbsp; {version}</span>
           </div>
-          <div className="prose prose-sm max-w-none text-[1.05em] leading-relaxed" style={{ fontFamily: 'Inter, Segoe UI, Arial, sans-serif', fontWeight: 500, letterSpacing: '0.01em', color: theme === 'dark' ? '#e6e8ee' : '#23263a' }}>
+          <div className="prose prose-sm max-w-none text-[1.05em] leading-relaxed" style={{ fontFamily: 'Inter, Segoe UI, Arial, sans-serif', fontWeight: 500, letterSpacing: '0.01em', color: actualTheme === 'dark' ? '#e6e8ee' : '#23263a' }}>
             {rest.split('\n').map((line, i) => (
-              <span key={i} style={{ display: 'block', marginBottom: '0.5em', whiteSpace: 'pre-line', color: theme === 'dark' ? '#e6e8ee' : '#23263a' }}>{line}</span>
+              <span key={i} style={{ display: 'block', marginBottom: '0.5em', whiteSpace: 'pre-line', color: actualTheme === 'dark' ? '#e6e8ee' : '#23263a' }}>{line}</span>
             ))}
           </div>
         </div>

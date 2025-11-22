@@ -7,6 +7,10 @@ export const translations = {
     cancel: 'Cancel',
     continue: 'Continue',
     loading: 'Loading...',
+    yes: 'Yes',
+    no: 'No',
+    logoutConfirm: 'Log Out?',
+    logoutWarning: 'Are you sure you want to log out? You will need to sign in again to access your account.',
   },
 
   // Login Page
@@ -45,7 +49,9 @@ export const translations = {
     
     // Email slide
     emailTitle: "Let's get started",
-    emailSubtitle: 'Enter your email address to create your account',
+    emailSubtitle: 'Enter your educational email address to create your account',
+    emailPlaceholder: 'name@university.edu',
+    emailMustBeEducational: 'Please use an educational email address (e.g., .edu, .edu.tr, .ac.uk)',
     
     // Name slide
     nameTitle: 'Tell us about yourself',
@@ -355,6 +361,148 @@ export const translations = {
     noCourseSelectedError: 'Please select a course before starting a session',
     cameraNotAvailable: 'Camera not available',
     sessionError: 'An error occurred during the session',
+  },
+
+  // Settings Page
+  settings: {
+    title: 'Settings',
+    subtitle: 'Manage your account settings and preferences',
+    profileSettings: 'Profile Settings',
+    securitySettings: 'Security Settings',
+    applicationPreferences: 'Application Preferences',
+    notificationPreferences: 'Notification Preferences',
+    dangerZone: 'Danger Zone',
+    
+    // Profile
+    firstName: 'First Name',
+    lastName: 'Last Name',
+    email: 'Email',
+    role: 'Role',
+    school: 'School / Institution',
+    firstNamePlaceholder: 'Enter first name',
+    lastNamePlaceholder: 'Enter last name',
+    changePhoto: 'Change Photo',
+    removePhoto: 'Remove Photo',
+    saveChanges: 'Save Changes',
+    saving: 'Saving...',
+    profileUpdated: 'Profile updated successfully!',
+    profileNameRequired: 'First and last name are required',
+    errorUpdating: 'Error updating. Please try again.',
+    
+    // Security
+    passwordManagement: 'Password Management',
+    currentPassword: 'Current Password',
+    newPassword: 'New Password',
+    confirmNewPassword: 'Confirm New Password',
+    updatePassword: 'Update Password',
+    updating: 'Updating...',
+    passwordUpdated: 'Password updated successfully!',
+    passwordFieldsRequired: 'All password fields are required',
+    passwordTooShort: 'Password must be at least 8 characters',
+    passwordMismatch: 'Passwords do not match',
+    
+    // Two-Factor Authentication
+    twoFactorAuth: 'Two-Factor Authentication',
+    twoFactorDescription: 'Add an extra layer of security to your account',
+    enabled: 'Enabled',
+    disabled: 'Disabled',
+    twoFactorEnabled: 'Two-factor authentication enabled',
+    twoFactorDisabled: 'Two-factor authentication disabled',
+    showRecoveryCodes: 'Show Recovery Codes',
+    hideRecoveryCodes: 'Hide Recovery Codes',
+    recoveryCodesDescription: 'Save these codes in a safe place. You can use them to access your account if you lose your device.',
+    
+    // Preferences
+    language: 'Language',
+    theme: 'Theme',
+    light: 'Light',
+    dark: 'Dark',
+    systemDefault: 'System Default',
+    languageUpdated: 'Language updated successfully!',
+    themeUpdated: 'Theme updated successfully!',
+    
+    // Notifications
+    attendanceSessionUpdates: 'Attendance session updates',
+    systemUpdates: 'System updates',
+    newStudentAdded: 'New student added',
+    reportReady: 'Report ready',
+    weeklySummaryEmail: 'Weekly summary email',
+    
+    // Danger Zone
+    dangerZoneDescription: 'Once you delete your account, there is no going back. Please be certain.',
+    deleteAccount: 'Delete Account',
+    deleteAccountConfirm: 'Delete Your Account?',
+    deleteAccountWarning: 'This action cannot be undone. This will permanently delete your account and remove all of your data from our servers.',
+    enterPasswordToConfirm: 'Enter your password to confirm',
+    passwordRequiredForDeletion: 'Password is required to delete account',
+    accountDeleted: 'Account deleted successfully',
+    errorDeleting: 'Error deleting account. Please try again.',
+    deleting: 'Deleting...',
+  },
+
+  // Reports Page
+  reports: {
+    title: 'Reports',
+    subtitle: 'View and analyze attendance data across all courses',
+    
+    // Filters
+    course: 'Course',
+    allCourses: 'All Courses',
+    dateRange: 'Date Range',
+    thisWeek: 'This Week',
+    thisMonth: 'This Month',
+    last3Months: 'Last 3 Months',
+    sessionType: 'Session Type',
+    allTypes: 'All Types',
+    exporting: 'Exporting...',
+    
+    // Metrics
+    overallAttendanceRate: 'Overall Attendance Rate',
+    avgAttendancePerSession: 'Avg Attendance per Session',
+    totalSessions: 'Total Sessions',
+    studentsAtRisk: 'Students at Risk',
+    
+    // Charts
+    attendanceOverview: 'Attendance Overview',
+    attendanceBySession: 'Attendance by Session',
+    bySession: 'By Session',
+    byWeek: 'By Week',
+    byMonth: 'By Month',
+    noDataAvailable: 'No data available for the selected filters',
+    
+    // Insights
+    insights: 'Insights',
+    studentsBelowThreshold: 'Students Below Threshold',
+    studentsHaveLowAttendance: 'students have low attendance (< 70%)',
+    averageAttendance: 'Average Attendance',
+    
+    // Session List
+    sessionList: 'Session List',
+    sessions: 'sessions',
+    date: 'Date',
+    time: 'Time',
+    present: 'Present',
+    absent: 'Absent',
+    excused: 'Excused',
+    attendanceRate: 'Attendance Rate',
+    actions: 'Actions',
+    viewDetails: 'View Details',
+    noSessionsFound: 'No sessions found for the selected filters',
+    
+    // Session Details Modal
+    sessionDetails: 'Session Details',
+    studentList: 'Student List',
+    studentName: 'Student Name',
+    studentNumber: 'Student Number',
+    status: 'Status',
+    
+    // Student Reports
+    studentReports: 'Student Reports',
+    selectStudent: 'Select Student',
+    searchStudentPlaceholder: 'Search by name, ID, or email...',
+    attendanceByCourse: 'Attendance by Course',
+    attendanceHistory: 'Attendance History',
+    notes: 'Notes',
   },
 };
 

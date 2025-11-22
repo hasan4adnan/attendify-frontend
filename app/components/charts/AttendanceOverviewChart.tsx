@@ -29,8 +29,8 @@ export default function AttendanceOverviewChart({ selectedCourseId, onCourseChan
   const [courses, setCourses] = useState<Course[]>([]);
   const [currentCourseId, setCurrentCourseId] = useState<number | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
+  const { actualTheme } = useTheme();
+  const isDark = actualTheme === 'dark';
 
   // Load courses on mount
   useEffect(() => {

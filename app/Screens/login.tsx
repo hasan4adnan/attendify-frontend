@@ -11,7 +11,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [focused, setFocused] = useState<'email' | 'password' | null>(null);
-  const { theme } = useTheme();
+  const { actualTheme } = useTheme();
   const { t, isTransitioning } = useLanguage();
   const router = useRouter();
 
@@ -267,7 +267,7 @@ export default function LoginPage() {
                 <span 
                   className="px-4 bg-transparent"
                   style={{ 
-                    backgroundColor: theme === 'dark' ? 'transparent' : 'var(--bg-secondary)',
+                    backgroundColor: actualTheme === 'dark' ? 'transparent' : 'var(--bg-secondary)',
                     color: 'var(--text-quaternary)' 
                   }}
                 >

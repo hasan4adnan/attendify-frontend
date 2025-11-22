@@ -18,6 +18,37 @@ const universities = [
   'Hacettepe University'
 ];
 
+// Educational email domains
+const educationalDomains = [
+  '.edu',
+  '.edu.tr',
+  '.ac.uk',
+  '.edu.au',
+  '.ac.za',
+  '.ac.in',
+  '.edu.sg',
+  '.ac.jp',
+  '.edu.cn',
+  '.ac.kr',
+  '.edu.mx',
+  '.ac.nz',
+  '.edu.br',
+  '.ac.ae',
+  '.edu.sa',
+  '.ac.ma',
+  '.edu.eg',
+  '.ac.ir',
+  '.edu.pk',
+  '.ac.bd',
+];
+
+// Check if email is from an educational domain
+const isValidEducationalEmail = (email: string): boolean => {
+  if (!email || !email.includes('@')) return false;
+  const domain = email.split('@')[1]?.toLowerCase() || '';
+  return educationalDomains.some(eduDomain => domain.endsWith(eduDomain));
+};
+
 export default function SignUpPage() {
   const [currentSlide, setCurrentSlide] = useState<Slide>('intro');
   const [email, setEmail] = useState('');
@@ -74,7 +105,7 @@ export default function SignUpPage() {
       case 'university':
         return university.length > 0;
       case 'email':
-        return email.length > 0 && email.includes('@');
+        return email.length > 0 && email.includes('@') && isValidEducationalEmail(email);
       case 'name':
         return firstName.length > 0 && lastName.length > 0;
       case 'password':
@@ -229,40 +260,44 @@ export default function SignUpPage() {
                 )}
                 {isUniversityDropdownOpen && (
                   <div
-                    className="absolute z-50 w-full mt-2 rounded-xl border shadow-lg max-h-60 overflow-auto"
+                    className="absolute z-50 w-full mt-2 rounded-2xl border shadow-2xl max-h-60 overflow-y-auto"
                     style={{
-                      backgroundColor: 'var(--bg-tertiary)',
-                      borderColor: 'var(--border-primary)',
+                      backgroundColor: '#1e1e2d',
+                      borderColor: '#2A2A3B',
+                      opacity: 1,
                     }}
                   >
-                    {universities.map((uni) => (
-                      <button
-                        key={uni}
-                        type="button"
-                        onMouseDown={(e) => {
-                          e.preventDefault();
-                          setUniversity(uni);
-                          setIsUniversityDropdownOpen(false);
-                        }}
-                        className="w-full px-4 py-3 text-left transition-colors duration-200 first:rounded-t-xl last:rounded-b-xl"
-                        style={{
-                          color: 'var(--text-primary)',
-                          backgroundColor: university === uni ? 'var(--bg-secondary)' : 'transparent',
-                        }}
-                        onMouseEnter={(e) => {
-                          if (university !== uni) {
-                            e.currentTarget.style.backgroundColor = 'var(--bg-secondary)';
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          if (university !== uni) {
-                            e.currentTarget.style.backgroundColor = 'transparent';
-                          }
-                        }}
-                      >
-                        {uni}
-                      </button>
-                    ))}
+                    <div className="p-2 space-y-1">
+                      {universities.map((uni) => (
+                        <button
+                          key={uni}
+                          type="button"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            setUniversity(uni);
+                            setIsUniversityDropdownOpen(false);
+                          }}
+                          className="w-full px-4 py-3 rounded-xl text-left transition-all duration-200 hover:scale-[1.02]"
+                          style={{
+                            backgroundColor: university === uni ? 'rgba(0, 70, 255, 0.15)' : '#1e1e2d',
+                            color: '#E4E4E7',
+                            border: university === uni ? '1px solid rgba(0, 70, 255, 0.3)' : '1px solid transparent',
+                          }}
+                          onMouseEnter={(e) => {
+                            if (university !== uni) {
+                              e.currentTarget.style.backgroundColor = '#2A2A3B';
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (university !== uni) {
+                              e.currentTarget.style.backgroundColor = '#1e1e2d';
+                            }
+                          }}
+                        >
+                          <div className="font-semibold">{uni}</div>
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
@@ -312,21 +347,40 @@ export default function SignUpPage() {
                   className="w-full px-4 py-4 rounded-xl border transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-[#0046FF]/50"
                   style={{
                     backgroundColor: 'var(--bg-tertiary)',
-                    borderColor: focused === 'email' ? '#0046FF' : 'var(--border-primary)',
+                    borderColor: email.length > 0 && !isValidEducationalEmail(email) && email.includes('@')
+                      ? '#FF8040'
+                      : focused === 'email'
+                      ? '#0046FF'
+                      : 'var(--border-primary)',
                     color: 'var(--text-primary)',
                   }}
-                  placeholder={t.login.emailPlaceholder}
+                  placeholder={t.signup.emailPlaceholder}
                   autoFocus
                 />
-                {focused === 'email' && (
+                {(focused === 'email' || (email.length > 0 && email.includes('@') && !isValidEducationalEmail(email))) && (
                   <div 
                     className="absolute inset-0 rounded-xl pointer-events-none -z-10 blur-xl transition-opacity duration-300"
                     style={{
-                      background: 'linear-gradient(to right, rgba(0, 70, 255, 0.2), rgba(0, 27, 183, 0.2))'
+                      background: email.length > 0 && !isValidEducationalEmail(email) && email.includes('@')
+                        ? 'linear-gradient(to right, rgba(255, 128, 64, 0.2), rgba(255, 64, 0, 0.2))'
+                        : 'linear-gradient(to right, rgba(0, 70, 255, 0.2), rgba(0, 27, 183, 0.2))'
                     }}
                   />
                 )}
               </div>
+              {email.length > 0 && email.includes('@') && !isValidEducationalEmail(email) && (
+                <p 
+                  className="text-xs flex items-center gap-2"
+                  style={{ color: '#FF8040' }}
+                >
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  <AnimatedText speed={50}>
+                    {t.signup.emailMustBeEducational}
+                  </AnimatedText>
+                </p>
+              )}
             </div>
           </div>
         );

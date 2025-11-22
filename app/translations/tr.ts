@@ -7,6 +7,10 @@ export const translations = {
     cancel: 'İptal',
     continue: 'Devam Et',
     loading: 'Yükleniyor...',
+    yes: 'Evet',
+    no: 'Hayır',
+    logoutConfirm: 'Çıkış Yap?',
+    logoutWarning: 'Çıkış yapmak istediğinize emin misiniz? Hesabınıza tekrar erişmek için giriş yapmanız gerekecek.',
   },
 
   // Login Page
@@ -45,7 +49,9 @@ export const translations = {
     
     // Email slide
     emailTitle: 'Hadi başlayalım',
-    emailSubtitle: 'Hesabınızı oluşturmak için e-posta adresinizi girin',
+    emailSubtitle: 'Hesabınızı oluşturmak için eğitim e-posta adresinizi girin',
+    emailPlaceholder: 'isim@universite.edu.tr',
+    emailMustBeEducational: 'Lütfen eğitim e-posta adresi kullanın (örn: .edu, .edu.tr, .ac.uk)',
     
     // Name slide
     nameTitle: 'Bize kendinizden bahsedin',
@@ -352,6 +358,148 @@ export const translations = {
     noCourseSelectedError: 'Lütfen oturum başlatmadan önce bir ders seçin',
     cameraNotAvailable: 'Kamera mevcut değil',
     sessionError: 'Oturum sırasında bir hata oluştu',
+  },
+
+  // Settings Page
+  settings: {
+    title: 'Ayarlar',
+    subtitle: 'Hesap ayarlarınızı ve tercihlerinizi yönetin',
+    profileSettings: 'Profil Ayarları',
+    securitySettings: 'Güvenlik Ayarları',
+    applicationPreferences: 'Uygulama Tercihleri',
+    notificationPreferences: 'Bildirim Tercihleri',
+    dangerZone: 'Tehlikeli Bölge',
+    
+    // Profile
+    firstName: 'Ad',
+    lastName: 'Soyad',
+    email: 'E-posta',
+    role: 'Rol',
+    school: 'Okul / Kurum',
+    firstNamePlaceholder: 'Adınızı girin',
+    lastNamePlaceholder: 'Soyadınızı girin',
+    changePhoto: 'Fotoğrafı Değiştir',
+    removePhoto: 'Fotoğrafı Kaldır',
+    saveChanges: 'Değişiklikleri Kaydet',
+    saving: 'Kaydediliyor...',
+    profileUpdated: 'Profil başarıyla güncellendi!',
+    profileNameRequired: 'Ad ve soyad gereklidir',
+    errorUpdating: 'Güncelleme hatası. Lütfen tekrar deneyin.',
+    
+    // Security
+    passwordManagement: 'Şifre Yönetimi',
+    currentPassword: 'Mevcut Şifre',
+    newPassword: 'Yeni Şifre',
+    confirmNewPassword: 'Yeni Şifreyi Onayla',
+    updatePassword: 'Şifreyi Güncelle',
+    updating: 'Güncelleniyor...',
+    passwordUpdated: 'Şifre başarıyla güncellendi!',
+    passwordFieldsRequired: 'Tüm şifre alanları gereklidir',
+    passwordTooShort: 'Şifre en az 8 karakter olmalıdır',
+    passwordMismatch: 'Şifreler eşleşmiyor',
+    
+    // Two-Factor Authentication
+    twoFactorAuth: 'İki Faktörlü Kimlik Doğrulama',
+    twoFactorDescription: 'Hesabınıza ekstra bir güvenlik katmanı ekleyin',
+    enabled: 'Etkin',
+    disabled: 'Devre Dışı',
+    twoFactorEnabled: 'İki faktörlü kimlik doğrulama etkinleştirildi',
+    twoFactorDisabled: 'İki faktörlü kimlik doğrulama devre dışı bırakıldı',
+    showRecoveryCodes: 'Kurtarma Kodlarını Göster',
+    hideRecoveryCodes: 'Kurtarma Kodlarını Gizle',
+    recoveryCodesDescription: 'Bu kodları güvenli bir yerde saklayın. Cihazınızı kaybederseniz hesabınıza erişmek için kullanabilirsiniz.',
+    
+    // Preferences
+    language: 'Dil',
+    theme: 'Tema',
+    light: 'Açık',
+    dark: 'Koyu',
+    systemDefault: 'Sistem Varsayılanı',
+    languageUpdated: 'Dil başarıyla güncellendi!',
+    themeUpdated: 'Tema başarıyla güncellendi!',
+    
+    // Notifications
+    attendanceSessionUpdates: 'Katılım oturumu güncellemeleri',
+    systemUpdates: 'Sistem güncellemeleri',
+    newStudentAdded: 'Yeni öğrenci eklendi',
+    reportReady: 'Rapor hazır',
+    weeklySummaryEmail: 'Haftalık özet e-postası',
+    
+    // Danger Zone
+    dangerZoneDescription: 'Hesabınızı sildikten sonra geri dönüş yoktur. Lütfen emin olun.',
+    deleteAccount: 'Hesabı Sil',
+    deleteAccountConfirm: 'Hesabınızı Silmek İstiyor musunuz?',
+    deleteAccountWarning: 'Bu işlem geri alınamaz. Bu, hesabınızı kalıcı olarak silecek ve tüm verilerinizi sunucularımızdan kaldıracaktır.',
+    enterPasswordToConfirm: 'Onaylamak için şifrenizi girin',
+    passwordRequiredForDeletion: 'Hesabı silmek için şifre gereklidir',
+    accountDeleted: 'Hesap başarıyla silindi',
+    errorDeleting: 'Hesap silme hatası. Lütfen tekrar deneyin.',
+    deleting: 'Siliniyor...',
+  },
+
+  // Reports Page
+  reports: {
+    title: 'Raporlar',
+    subtitle: 'Tüm derslerdeki katılım verilerini görüntüleyin ve analiz edin',
+    
+    // Filters
+    course: 'Ders',
+    allCourses: 'Tüm Dersler',
+    dateRange: 'Tarih Aralığı',
+    thisWeek: 'Bu Hafta',
+    thisMonth: 'Bu Ay',
+    last3Months: 'Son 3 Ay',
+    sessionType: 'Oturum Türü',
+    allTypes: 'Tüm Türler',
+    exporting: 'Dışa Aktarılıyor...',
+    
+    // Metrics
+    overallAttendanceRate: 'Genel Katılım Oranı',
+    avgAttendancePerSession: 'Oturum Başına Ortalama Katılım',
+    totalSessions: 'Toplam Oturum',
+    studentsAtRisk: 'Risk Altındaki Öğrenciler',
+    
+    // Charts
+    attendanceOverview: 'Katılım Genel Bakış',
+    attendanceBySession: 'Oturuma Göre Katılım',
+    bySession: 'Oturuma Göre',
+    byWeek: 'Haftaya Göre',
+    byMonth: 'Aya Göre',
+    noDataAvailable: 'Seçilen filtreler için veri bulunamadı',
+    
+    // Insights
+    insights: 'İçgörüler',
+    studentsBelowThreshold: 'Eşiğin Altındaki Öğrenciler',
+    studentsHaveLowAttendance: 'öğrencinin düşük katılımı var (< %70)',
+    averageAttendance: 'Ortalama Katılım',
+    
+    // Session List
+    sessionList: 'Oturum Listesi',
+    sessions: 'oturum',
+    date: 'Tarih',
+    time: 'Saat',
+    present: 'Mevcut',
+    absent: 'Yok',
+    excused: 'Mazeretli',
+    attendanceRate: 'Katılım Oranı',
+    actions: 'İşlemler',
+    viewDetails: 'Detayları Görüntüle',
+    noSessionsFound: 'Seçilen filtreler için oturum bulunamadı',
+    
+    // Session Details Modal
+    sessionDetails: 'Oturum Detayları',
+    studentList: 'Öğrenci Listesi',
+    studentName: 'Öğrenci Adı',
+    studentNumber: 'Öğrenci Numarası',
+    status: 'Durum',
+    
+    // Student Reports
+    studentReports: 'Öğrenci Raporları',
+    selectStudent: 'Öğrenci Seç',
+    searchStudentPlaceholder: 'İsim, numara veya e-posta ile ara...',
+    attendanceByCourse: 'Derse Göre Katılım',
+    attendanceHistory: 'Katılım Geçmişi',
+    notes: 'Notlar',
   },
 };
 
