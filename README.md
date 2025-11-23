@@ -1,5 +1,7 @@
 # Attendify Frontend
 
+<img width="1707" height="922" alt="Ekran Resmi 2025-11-23 19 20 21" src="https://github.com/user-attachments/assets/8185bec0-ffe6-4302-9c54-960f078b4b80" />
+
 A modern, responsive web application for managing student attendance using face verification technology. Built with Next.js, React, and TypeScript, Attendify provides an intuitive interface for educators to track attendance, manage students and courses, generate reports, and analyze attendance data.
 
 ## 📋 Table of Contents
@@ -77,6 +79,10 @@ The application features a modern, glassmorphic UI design with smooth animations
   - Attendance Distribution Chart (Pie chart)
 
 ### Student Management
+
+<img width="1707" height="925" alt="Ekran Resmi 2025-11-23 19 21 46" src="https://github.com/user-attachments/assets/98068c10-3964-4635-ad88-f5eb44c447fc" />
+
+
 - Add, edit, and delete students
 - Student search functionality
 - Face verification status tracking:
@@ -90,6 +96,10 @@ The application features a modern, glassmorphic UI design with smooth animations
 - Attendance override capabilities
 
 ### Course Management
+
+<img width="1709" height="921" alt="Ekran Resmi 2025-11-23 19 24 27" src="https://github.com/user-attachments/assets/b09faf70-9a33-45a4-8ac3-fec1f96a1ba6" />
+
+
 - Create and manage courses
 - Course details:
   - Course name and code
@@ -104,6 +114,10 @@ The application features a modern, glassmorphic UI design with smooth animations
 - Course search and filtering
 
 ### Attendance Sessions
+
+<img width="1708" height="920" alt="Ekran Resmi 2025-11-23 19 25 06" src="https://github.com/user-attachments/assets/41ae325f-717a-4561-9f20-10f57167f23f" />
+
+
 - Course selection for attendance
 - Pre-session system checks:
   - Course validation
@@ -118,6 +132,10 @@ The application features a modern, glassmorphic UI design with smooth animations
 - Attendance report generation
 
 ### Reports & Analytics
+
+<img width="1709" height="927" alt="Ekran Resmi 2025-11-23 19 25 42" src="https://github.com/user-attachments/assets/3f564bbb-1dc0-4660-865b-def42e16a45f" />
+
+
 - Comprehensive attendance reports
 - Filtering options:
   - By course
@@ -136,6 +154,10 @@ The application features a modern, glassmorphic UI design with smooth animations
 - Export functionality
 
 ### Settings
+
+<img width="1709" height="924" alt="Ekran Resmi 2025-11-23 19 26 11" src="https://github.com/user-attachments/assets/c098a56f-7f50-4fd5-83ed-f077a8b251c1" />
+
+
 - **Profile Settings**:
   - Update personal information
   - Change profile photo
@@ -163,6 +185,10 @@ The application features a modern, glassmorphic UI design with smooth animations
 - Role and account information
 
 ### UI/UX Features
+
+https://github.com/user-attachments/assets/ffe2bc36-db70-4409-8843-6a36f327c633
+
+
 - **Responsive Design**: Mobile-first approach with collapsible sidebar
 - **Theme Support**: Dark, Light, and System theme modes with smooth transitions
 - **Internationalization**: English and Turkish language support with animated text transitions
