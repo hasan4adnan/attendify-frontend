@@ -524,9 +524,16 @@ Contributions are welcome! Please follow these steps:
 
 ## 📄 License
 
-This project is part of the SE 342 Software Validation and Testing course project at Maltepe University (Student ID: 220706802).
+This project is part of the **SE 342 Software Validation and Testing** course project at **Maltepe University**.
 
-**Note**: License information should be added here. If you have a LICENSE file, please specify the license type.
+### Team Members
+
+- **Hasan Muayad Adnan Al-Saedi** - Student ID: 220706802
+- **Mert Temiz** - Student ID: 220706003
+- **Mürsel Yıldırım** - Student ID: 230706030
+- **Erden Dinç** - Student ID: 220706045
+
+**Note**: This is an academic project. For license information, please refer to the LICENSE file in the repository root or contact the project maintainers.
 
 ---
 
