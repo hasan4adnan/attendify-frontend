@@ -24,7 +24,7 @@ export default function Sidebar({
   const [hoveredProfile, setHoveredProfile] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const { t } = useLanguage();
-  const { user } = useUser();
+  const { user, logout } = useUser();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -56,7 +56,8 @@ export default function Sidebar({
 
   const handleConfirmLogout = () => {
     setShowLogoutModal(false);
-    router.push('/');
+    logout(); // Clear user data and token
+    router.push('/'); // Redirect to login page
   };
 
   return (

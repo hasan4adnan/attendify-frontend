@@ -64,6 +64,9 @@ export default function SignUpPage() {
   const [verificationCode, setVerificationCode] = useState('');
   const [focused, setFocused] = useState<string | null>(null);
   const [isUniversityDropdownOpen, setIsUniversityDropdownOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [userId, setUserId] = useState<number | null>(null);
   const { theme } = useTheme();
   const { t } = useLanguage();
   const router = useRouter();
@@ -83,21 +86,75 @@ export default function SignUpPage() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (currentSlide === 'verification') {
-      // Handle final submission
-      console.log('Sign up completed:', {
-        email,
-        university,
-        firstName,
-        lastName,
-        password,
-        verificationCode
-      });
-      // Navigate to login or dashboard
-      router.push('/');
+    setError(null);
+
+    if (currentSlide === 'password') {
+      // Register user when password slide is submitted
+      setIsLoading(true);
+      try {
+        const response = await fetch('http://localhost:3001/api/auth/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            name: firstName,
+            surname: lastName,
+            email: email,
+            password: password,
+            confirmPassword: confirmPassword,
+            role: 'instructor', // Default role as requested
+          }),
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.userId) {
+          setUserId(data.userId);
+          // Move to verification slide
+          nextSlide();
+        } else {
+          setError(data.message || 'Registration failed. Please try again.');
+        }
+      } catch (error) {
+        console.error('Registration error:', error);
+        setError('Network error. Please try again.');
+      } finally {
+        setIsLoading(false);
+      }
+    } else if (currentSlide === 'verification') {
+      // Verify email when verification slide is submitted
+      setIsLoading(true);
+      try {
+        const response = await fetch('http://localhost:3001/api/auth/verify-email', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: email,
+            code: verificationCode,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+          // Email verified successfully, redirect to login
+          router.push('/');
+        } else {
+          setError(data.message || 'Verification failed. Please check your code and try again.');
+        }
+      } catch (error) {
+        console.error('Verification error:', error);
+        setError('Network error. Please try again.');
+      } finally {
+        setIsLoading(false);
+      }
     } else {
+      // For other slides, just move to next
       nextSlide();
     }
   };
@@ -509,6 +566,23 @@ export default function SignUpPage() {
                 </AnimatedText>
               </p>
             </div>
+            {error && (
+              <div 
+                className="p-4 rounded-xl border"
+                style={{
+                  backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                  borderColor: 'rgba(239, 68, 68, 0.3)',
+                  color: '#ef4444'
+                }}
+              >
+                <div className="flex items-center gap-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span className="text-sm font-medium">{error}</span>
+                </div>
+              </div>
+            )}
             <div className="space-y-4">
               <div className="space-y-2">
                 <label 
@@ -638,6 +712,23 @@ export default function SignUpPage() {
                 </span>
               </p>
             </div>
+            {error && (
+              <div 
+                className="p-4 rounded-xl border"
+                style={{
+                  backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                  borderColor: 'rgba(239, 68, 68, 0.3)',
+                  color: '#ef4444'
+                }}
+              >
+                <div className="flex items-center gap-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span className="text-sm font-medium">{error}</span>
+                </div>
+              </div>
+            )}
             <div className="space-y-2">
               <label 
                 htmlFor="verificationCode" 
@@ -849,24 +940,38 @@ export default function SignUpPage() {
                 )}
                 <button
                   type="submit"
-                  disabled={!canProceed()}
+                  disabled={!canProceed() || isLoading}
                   className={`${currentIndex === 0 ? 'px-8' : 'flex-1'} py-4 bg-gradient-to-r from-[#0046FF] to-[#001BB7] text-white font-semibold rounded-xl shadow-lg shadow-[#0046FF]/25 focus:outline-none focus:ring-2 focus:ring-[#0046FF] focus:ring-offset-2 focus:ring-offset-transparent transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] relative overflow-hidden group hover:from-[#0055FF] hover:to-[#0025CC] ${
-                    !canProceed() ? 'opacity-50 cursor-not-allowed' : ''
+                    !canProceed() || isLoading ? 'opacity-50 cursor-not-allowed' : ''
                   }`}
                 >
                   <span className="relative z-10 flex items-center justify-center gap-2">
-                    <AnimatedText speed={40}>
-                      {currentSlide === 'verification' ? t.signup.completeSignUp : t.common.next}
-                    </AnimatedText>
-                    {currentSlide !== 'verification' && (
-                      <svg
-                        className="w-5 h-5 transform group-hover:translate-x-1 transition-transform duration-300"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                      </svg>
+                    {isLoading ? (
+                      <>
+                        <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span>
+                          {currentSlide === 'password' ? 'Registering...' : currentSlide === 'verification' ? 'Verifying...' : 'Loading...'}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <AnimatedText speed={40}>
+                          {currentSlide === 'verification' ? t.signup.completeSignUp : t.common.next}
+                        </AnimatedText>
+                        {currentSlide !== 'verification' && (
+                          <svg
+                            className="w-5 h-5 transform group-hover:translate-x-1 transition-transform duration-300"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                          </svg>
+                        )}
+                      </>
                     )}
                   </span>
                 </button>
