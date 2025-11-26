@@ -177,35 +177,59 @@ export default function TopBar({ mobileMenuOpen, setMobileMenuOpen, sidebarColla
                 setNotificationsOpen(!notificationsOpen);
                 setAdminDropdownOpen(false);
               }}
-              className="p-3 rounded-xl hover:scale-110 active:scale-95 transition-all duration-300 relative group"
+              className="relative p-2.5 rounded-xl hover:scale-110 active:scale-95 transition-all duration-300 group"
               style={{
-                backgroundColor: 'var(--bg-tertiary)',
+                backgroundColor: notificationsOpen ? 'var(--bg-tertiary)' : 'transparent',
                 color: 'var(--text-primary)',
-                border: '1px solid var(--border-primary)'
               }}
               aria-label="Notifications"
             >
+              {/* Hover background */}
               <div 
                 className="absolute inset-0 bg-gradient-to-r from-[#0046FF]/10 to-[#FF8040]/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl"
               />
-              <svg
-                className="w-5 h-5 relative z-10"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-              </svg>
+              
+              {/* Notification Icon */}
+              <div className="relative z-10">
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  viewBox="0 0 24 24"
+                  style={{
+                    color: notificationsOpen ? '#0046FF' : 'var(--text-primary)',
+                    transition: 'color 0.2s ease'
+                  }}
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+                </svg>
+              </div>
+              
+              {/* Badge */}
               {unreadCount > 0 && (
                 <span 
-                  className="absolute top-1.5 right-1.5 min-w-[18px] h-[18px] rounded-full flex items-center justify-center text-[10px] font-bold text-white shadow-lg"
+                  className="absolute -top-1 -right-1 min-w-[20px] h-[20px] rounded-full flex items-center justify-center text-xs font-bold text-white shadow-lg z-20"
                   style={{ 
                     backgroundColor: '#FF8040',
-                    padding: '0 4px'
+                    padding: '0 5px',
+                    border: '2px solid var(--bg-secondary)',
+                    boxShadow: '0 2px 8px rgba(255, 128, 64, 0.4)'
                   }}
                 >
                   {unreadCount > 9 ? '9+' : unreadCount}
                 </span>
+              )}
+              
+              {/* Pulse animation for unread notifications */}
+              {unreadCount > 0 && (
+                <span 
+                  className="absolute -top-1 -right-1 w-5 h-5 rounded-full animate-ping"
+                  style={{ 
+                    backgroundColor: '#FF8040',
+                    opacity: 0.3
+                  }}
+                />
               )}
             </button>
 
