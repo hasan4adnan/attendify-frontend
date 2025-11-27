@@ -236,6 +236,8 @@ export const translations = {
     newPasswordRequired: 'New password is required',
     confirmPasswordRequired: 'Confirm password is required',
     role: 'Role',
+    school: 'School / Institution',
+    userInformation: 'User Information',
   },
 
   // Courses Page

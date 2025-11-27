@@ -236,6 +236,8 @@ export const translations = {
     newPasswordRequired: 'Yeni şifre gereklidir',
     confirmPasswordRequired: 'Şifre onayı gereklidir',
     role: 'Rol',
+    school: 'Okul / Kurum',
+    userInformation: 'Kullanıcı Bilgileri',
   },
 
   // Courses Page

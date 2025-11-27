@@ -9,6 +9,7 @@ export interface UserProfile {
   email: string;
   role: string;
   avatar?: string; // URL or base64 string
+  school?: string; // School / Institution name
 }
 
 interface LoginResponse {

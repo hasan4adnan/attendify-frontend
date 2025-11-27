@@ -308,6 +308,61 @@ export default function ProfilePage() {
 
           {/* Right Column - Form Section */}
           <div className="lg:col-span-2 space-y-6">
+            {/* User Information Section */}
+            <div
+              className="p-6 rounded-2xl backdrop-blur-xl border"
+              style={{
+                backgroundColor: 'var(--bg-secondary)',
+                borderColor: 'var(--border-primary)',
+              }}
+            >
+              <h2 className="text-lg font-semibold mb-6" style={{ color: 'var(--text-primary)' }}>
+                <AnimatedText speed={40}>{t.profile.userInformation}</AnimatedText>
+              </h2>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Email - Read Only */}
+                <div>
+                  <label
+                    className="block text-sm font-medium mb-2"
+                    style={{ color: 'var(--text-secondary)' }}
+                  >
+                    {t.profile.email}
+                  </label>
+                  <div
+                    className="w-full px-4 py-3 rounded-xl"
+                    style={{
+                      backgroundColor: 'var(--bg-primary)',
+                      border: '1px solid var(--border-primary)',
+                      color: 'var(--text-tertiary)',
+                    }}
+                  >
+                    {user.email}
+                  </div>
+                </div>
+
+                {/* School / Institution - Read Only */}
+                <div>
+                  <label
+                    className="block text-sm font-medium mb-2"
+                    style={{ color: 'var(--text-secondary)' }}
+                  >
+                    {t.profile.school}
+                  </label>
+                  <div
+                    className="w-full px-4 py-3 rounded-xl"
+                    style={{
+                      backgroundColor: 'var(--bg-primary)',
+                      border: '1px solid var(--border-primary)',
+                      color: 'var(--text-tertiary)',
+                    }}
+                  >
+                    {user.school || '—'}
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* Personal Information */}
             <form onSubmit={handleSaveProfile}>
               <div
