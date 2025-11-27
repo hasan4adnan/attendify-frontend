@@ -554,10 +554,10 @@ This project is part of the **SE 342 Software Validation and Testing** course pr
 
 ### Team Members
 
--  **Hasan Muayad Adnan Al-Saedi** - Student ID: 220706802
--  **Mert Temiz** - Student ID: 220706003
--  **Mürsel Yıldırım** - Student ID: 23070603
--  **Erden Dinç** - Student ID: 220706045
+- **Hasan Muayad Adnan Al-Saedi** - Student ID: 220706802
+- **Mert Temiz** - Student ID: 220706003
+- **Mürsel Yıldırım** - Student ID: 23070603
+- **Erden Dinç** - Student ID: 220706045
 
 **Note**: This is an academic project. For license information, please refer to the LICENSE file in the repository root or contact the project maintainers.
 
