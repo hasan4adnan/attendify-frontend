@@ -11,45 +11,107 @@ export interface UserProfile {
   avatar?: string; // URL or base64 string
 }
 
+interface LoginResponse {
+  success: boolean;
+  token: string;
+  user: {
+    id: number;
+    name: string;
+    surname: string;
+    email: string;
+    role: string;
+  };
+}
+
 interface UserContextType {
   user: UserProfile | null;
+  token: string | null;
   updateUser: (updates: Partial<UserProfile>) => void;
   updateAvatar: (avatar: string) => void;
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  logout: () => void;
   isLoading: boolean;
+  isAuthenticated: boolean;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
-// Default user data (can be replaced with API call later)
-const defaultUser: UserProfile = {
-  id: '1',
-  firstName: 'John',
-  lastName: 'Doe',
-  email: 'john.doe@example.com',
-  role: 'Administrator',
-  avatar: undefined,
-};
-
 export function UserProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserProfile | null>(null);
+  const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Load user from localStorage or API
+    // Load user and token from localStorage
     if (typeof window !== 'undefined') {
       const savedUser = localStorage.getItem('userProfile');
-      if (savedUser) {
+      const savedToken = localStorage.getItem('authToken');
+      
+      if (savedUser && savedToken) {
         try {
           setUser(JSON.parse(savedUser));
+          setToken(savedToken);
         } catch (e) {
-          setUser(defaultUser);
+          console.error('Error loading user data:', e);
+          // Clear invalid data
+          localStorage.removeItem('userProfile');
+          localStorage.removeItem('authToken');
         }
-      } else {
-        setUser(defaultUser);
       }
       setIsLoading(false);
     }
   }, []);
+
+  const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const response = await fetch('http://localhost:3001/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data: LoginResponse = await response.json();
+
+      if (data.success && data.token && data.user) {
+        // Convert API user format to UserProfile format
+        const userProfile: UserProfile = {
+          id: data.user.id.toString(),
+          firstName: data.user.name,
+          lastName: data.user.surname,
+          email: data.user.email,
+          role: data.user.role,
+        };
+
+        // Save to state and localStorage
+        setUser(userProfile);
+        setToken(data.token);
+        
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('userProfile', JSON.stringify(userProfile));
+          localStorage.setItem('authToken', data.token);
+        }
+
+        return { success: true };
+      } else {
+        return { success: false, error: 'Invalid credentials' };
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      return { success: false, error: 'Network error. Please try again.' };
+    }
+  };
+
+  const logout = () => {
+    setUser(null);
+    setToken(null);
+    
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('userProfile');
+      localStorage.removeItem('authToken');
+    }
+  };
 
   const updateUser = (updates: Partial<UserProfile>) => {
     setUser((prevUser) => {
@@ -69,8 +131,19 @@ export function UserProvider({ children }: { children: ReactNode }) {
     updateUser({ avatar });
   };
 
+  const isAuthenticated = !!token && !!user;
+
   return (
-    <UserContext.Provider value={{ user, updateUser, updateAvatar, isLoading }}>
+    <UserContext.Provider value={{ 
+      user, 
+      token,
+      updateUser, 
+      updateAvatar, 
+      login,
+      logout,
+      isLoading,
+      isAuthenticated
+    }}>
       {children}
     </UserContext.Provider>
   );

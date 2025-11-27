@@ -12,8 +12,8 @@ const data = [
 const COLORS = ['#0046FF', '#FF8040', '#001BB7'];
 
 export default function AttendanceDistributionChart() {
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
+  const { actualTheme } = useTheme();
+  const isDark = actualTheme === 'dark';
 
   const textColor = isDark ? 'rgba(255, 255, 255, 0.9)' : 'rgba(10, 10, 15, 0.9)';
   const textSecondary = isDark ? 'rgba(255, 255, 255, 0.7)' : 'rgba(10, 10, 15, 0.7)';

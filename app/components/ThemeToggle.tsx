@@ -3,7 +3,7 @@
 import { useTheme } from '../context/ThemeContext';
 
 export default function ThemeToggle() {
-  const { theme, toggleTheme } = useTheme();
+  const { actualTheme, toggleTheme } = useTheme();
 
   return (
     <button
@@ -20,7 +20,7 @@ export default function ThemeToggle() {
         {/* Sun Icon (Light Mode) */}
         <svg
           className={`absolute inset-0 w-6 h-6 text-[#FF8040] transition-all duration-500 ${
-            theme === 'light'
+            actualTheme === 'light'
               ? 'rotate-0 scale-100 opacity-100'
               : 'rotate-90 scale-0 opacity-0'
           }`}
@@ -39,7 +39,7 @@ export default function ThemeToggle() {
         {/* Moon Icon (Dark Mode) */}
         <svg
           className={`absolute inset-0 w-6 h-6 text-[#0046FF] transition-all duration-500 ${
-            theme === 'dark'
+            actualTheme === 'dark'
               ? 'rotate-0 scale-100 opacity-100'
               : '-rotate-90 scale-0 opacity-0'
           }`}
@@ -60,7 +60,7 @@ export default function ThemeToggle() {
       <div 
         className="absolute inset-0 rounded-full blur-md opacity-50 transition-all duration-500 -z-10"
         style={{
-          backgroundColor: theme === 'light' 
+          backgroundColor: actualTheme === 'light' 
             ? 'rgba(255, 128, 64, 0.3)' 
             : 'rgba(0, 70, 255, 0.3)'
         }}

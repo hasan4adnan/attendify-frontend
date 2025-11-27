@@ -340,14 +340,7 @@ const Attendance = () => {
         </div>
 
         {/* Course Selection Section */}
-        <div className="space-y-4">
-          <label 
-            className="block text-sm font-semibold"
-            style={{ color: 'var(--text-secondary)' }}
-          >
-            {t.attendance.selectCourse}
-          </label>
-          <div className="relative" ref={courseDropdownRef}>
+        <div className="relative" ref={courseDropdownRef}>
             <button
               onClick={() => setCourseDropdownOpen(!courseDropdownOpen)}
               className="w-full px-6 py-4 rounded-2xl transition-all duration-300 text-left flex items-center justify-between group"
@@ -461,7 +454,6 @@ const Attendance = () => {
               </div>
             )}
           </div>
-        </div>
 
         {/* Action Cards */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
