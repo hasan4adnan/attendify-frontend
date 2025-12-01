@@ -459,7 +459,7 @@ const Students = () => {
     <div className="p-4 lg:p-6">
       <div className="max-w-7xl mx-auto space-y-6 lg:space-y-8">
         {/* Page Title */}
-        <div className="space-y-2">
+        <div className="mt-6 space-y-2">
           <h2 
             className="text-3xl lg:text-4xl font-bold"
             style={{ color: 'var(--text-primary)' }}
@@ -476,7 +476,6 @@ const Students = () => {
               {t.students.subtitle}
             </AnimatedText>
           </p>
-          <div className="h-1 w-20 bg-gradient-to-r from-[#0046FF] to-[#FF8040] rounded-full" />
         </div>
 
         {/* Tabs */}

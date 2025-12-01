@@ -204,7 +204,7 @@ export default function ProfilePage() {
     <div className="min-h-screen p-6" style={{ backgroundColor: 'var(--bg-primary)' }}>
       <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-8 mt-6">
           <h1 className="text-3xl font-bold mb-2" style={{ color: 'var(--text-primary)' }}>
             <AnimatedText speed={40}>{t.profile.title}</AnimatedText>
           </h1>

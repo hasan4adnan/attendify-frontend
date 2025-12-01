@@ -1,12 +1,21 @@
 'use client';
 
+import { useState, useRef } from 'react';
 import { useLanguage } from '../context/LanguageContext';
+import { useUser } from '../context/UserContext';
 import AnimatedText from '../components/AnimatedText';
 import AttendanceOverviewChart from '../components/charts/AttendanceOverviewChart';
 import AttendanceDistributionChart from '../components/charts/AttendanceDistributionChart';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 export default function DashboardPage() {
   const { t } = useLanguage();
+  const { user } = useUser();
+  const [isGenerating, setIsGenerating] = useState(false);
+  const chart1Ref = useRef<HTMLDivElement>(null);
+  const chart2Ref = useRef<HTMLDivElement>(null);
+  const dashboardRef = useRef<HTMLDivElement>(null);
 
   const summaryCards = [
     { title: t.dashboard.todayAttendance, value: '245', change: '+12%', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z', gradient: 'from-[#0046FF] to-[#001BB7]' },
@@ -15,11 +24,225 @@ export default function DashboardPage() {
     { title: t.dashboard.attendanceRate, value: '94.2%', change: '+2.1%', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z', gradient: 'from-[#0046FF] via-[#FF8040] to-[#FF6B35]' },
   ];
 
+  const generatePDF = async () => {
+    setIsGenerating(true);
+    try {
+      if (!dashboardRef.current) {
+        throw new Error('Dashboard element not found');
+      }
+
+      // Capture the entire dashboard as a high-quality image
+      // Workaround for oklab color parsing issue in html2canvas
+      let canvas: HTMLCanvasElement;
+      
+      try {
+        canvas = await html2canvas(dashboardRef.current, {
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          backgroundColor: '#0a0a15',
+          windowWidth: dashboardRef.current.scrollWidth,
+          windowHeight: dashboardRef.current.scrollHeight,
+          onclone: (clonedDoc) => {
+            // Remove all stylesheets to prevent oklab parsing
+            try {
+              const head = clonedDoc.head;
+              if (head) {
+                const children = Array.from(head.children);
+                children.forEach((child) => {
+                  if (child.tagName === 'STYLE' || 
+                      (child.tagName === 'LINK' && child.getAttribute('rel') === 'stylesheet')) {
+                    child.remove();
+                  }
+                });
+              }
+              
+              // Remove style tags from body
+              const styleTags = clonedDoc.querySelectorAll('style');
+              styleTags.forEach((tag) => tag.remove());
+            } catch (e) {
+              // Ignore errors
+            }
+          },
+        });
+      } catch (error: any) {
+        // If html2canvas fails due to CSS parsing, try with minimal options
+        if (error.message && error.message.includes('oklab')) {
+          console.warn('Retrying with minimal CSS...');
+          canvas = await html2canvas(dashboardRef.current, {
+            scale: 1.5,
+            useCORS: false,
+            logging: false,
+            backgroundColor: '#0a0a15',
+            ignoreElements: () => false,
+            onclone: (clonedDoc) => {
+              // Aggressively remove all CSS
+              const allStyleSheets = Array.from(clonedDoc.styleSheets);
+              allStyleSheets.forEach((sheet: any) => {
+                try {
+                  if (sheet.ownerNode) {
+                    sheet.ownerNode.remove();
+                  }
+                } catch (e) {
+                  // Ignore
+                }
+              });
+              
+              // Remove all style and link tags
+              clonedDoc.querySelectorAll('style, link[rel="stylesheet"]').forEach((el) => el.remove());
+            },
+          });
+        } else {
+          throw error;
+        }
+      }
+
+      const imgData = canvas.toDataURL('image/png', 1.0);
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+
+      // Calculate PDF dimensions
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 10;
+      const contentWidth = pageWidth - (margin * 2);
+      
+      // Convert pixels to mm (96 DPI standard)
+      const pxToMm = 0.264583;
+      const imgWidthMm = imgWidth * pxToMm;
+      const imgHeightMm = imgHeight * pxToMm;
+      
+      // Scale to fit content width
+      const scale = contentWidth / imgWidthMm;
+      const scaledWidth = imgWidthMm * scale;
+      const scaledHeight = imgHeightMm * scale;
+
+      // Add header to first page
+      pdf.setFillColor(10, 15, 40);
+      pdf.rect(0, 0, pageWidth, 40, 'F');
+      
+      // Brand name
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFontSize(22);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Attendify', margin, 16);
+      
+      pdf.setFontSize(8);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setTextColor(200, 200, 255);
+      pdf.text('Intelligent Attendance Management System', margin, 22);
+      
+      // Report info
+      const now = new Date();
+      const dateStr = now.toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric'
+      });
+      const timeStr = now.toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      });
+      
+      pdf.setFontSize(7);
+      pdf.setTextColor(255, 255, 255);
+      pdf.text('Attendance Dashboard Report', pageWidth - margin, 16, { align: 'right' });
+      pdf.setFontSize(6);
+      pdf.setTextColor(220, 220, 255);
+      pdf.text(`Generated: ${dateStr} at ${timeStr}`, pageWidth - margin, 22, { align: 'right' });
+      
+      if (user) {
+        pdf.text(`${user.firstName} ${user.lastName} (${user.role})`, pageWidth - margin, 28, { align: 'right' });
+      }
+
+      // Add the dashboard image, splitting across pages if needed
+      let yPos = 45;
+      let remainingHeight = scaledHeight;
+      const pageContentHeight = pageHeight - yPos - 10; // Space for footer
+
+      // Load image first
+      const img = new Image();
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = () => reject(new Error('Failed to load image'));
+        img.src = imgData;
+      });
+
+      // Split image across pages
+      let sourceY = 0;
+      while (remainingHeight > 0) {
+        const availableHeight = pageContentHeight;
+        const heightToAdd = Math.min(remainingHeight, availableHeight);
+        const sourceHeightRatio = heightToAdd / scaledHeight;
+        const sourceHeightPx = Math.ceil(imgHeight * sourceHeightRatio);
+
+        // Create canvas for this portion
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = imgWidth;
+        tempCanvas.height = sourceHeightPx;
+        const ctx = tempCanvas.getContext('2d');
+        
+        if (!ctx) {
+          throw new Error('Failed to get canvas context');
+        }
+
+        // Draw portion of image
+        ctx.drawImage(img, 0, sourceY, imgWidth, sourceHeightPx, 0, 0, imgWidth, sourceHeightPx);
+        const portionData = tempCanvas.toDataURL('image/png', 1.0);
+        
+        // Add to PDF
+        pdf.addImage(
+          portionData,
+          'PNG',
+          margin,
+          yPos,
+          scaledWidth,
+          heightToAdd
+        );
+
+        remainingHeight -= heightToAdd;
+        sourceY += sourceHeightPx;
+
+        if (remainingHeight > 0) {
+          pdf.addPage();
+          yPos = margin;
+        }
+      }
+
+      // Add footer to all pages
+      const totalPages = pdf.getNumberOfPages();
+      for (let i = 1; i <= totalPages; i++) {
+        pdf.setPage(i);
+        const footerY = pageHeight - 6;
+        
+        pdf.setDrawColor(0, 70, 255);
+        pdf.setLineWidth(0.2);
+        pdf.line(margin, footerY, pageWidth - margin, footerY);
+        
+        pdf.setFontSize(6);
+        pdf.setTextColor(100, 100, 120);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text('Attendify - Intelligent Attendance Management System', margin, footerY + 4);
+        pdf.text(`Page ${i} of ${totalPages}`, pageWidth - margin, footerY + 4, { align: 'right' });
+      }
+
+      // Save PDF
+      const fileName = `Attendify_Report_${now.toISOString().split('T')[0]}_${now.getTime()}.pdf`;
+      pdf.save(fileName);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert(`An error occurred while generating the PDF: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   return (
-    <div className="p-4 lg:p-6">
+    <div className="p-4 lg:p-6" ref={dashboardRef} data-dashboard-pdf>
       <div className="max-w-7xl mx-auto space-y-6 lg:space-y-8">
         {/* Page Title */}
-        <div className="space-y-2">
+        <div className="mt-6">
           <h2 
             className="text-3xl lg:text-4xl font-bold"
             style={{ color: 'var(--text-primary)' }}
@@ -28,7 +251,6 @@ export default function DashboardPage() {
               {t.dashboard.title}
             </AnimatedText>
           </h2>
-          <div className="h-1 w-20 bg-gradient-to-r from-[#0046FF] to-[#FF8040] rounded-full" />
         </div>
 
         {/* Summary Cards */}
@@ -118,6 +340,7 @@ export default function DashboardPage() {
             </div>
             {/* Attendance Overview Chart */}
             <div 
+              ref={chart1Ref}
               className="h-[380px] rounded-xl relative overflow-hidden p-4"
               style={{
                 backgroundColor: 'var(--bg-tertiary)',
@@ -153,6 +376,7 @@ export default function DashboardPage() {
             </div>
             {/* Attendance Distribution Pie Chart */}
             <div 
+              ref={chart2Ref}
               className="h-[380px] rounded-xl relative overflow-hidden p-4"
               style={{
                 backgroundColor: 'var(--bg-tertiary)',
@@ -166,23 +390,34 @@ export default function DashboardPage() {
         {/* Generate Report Button */}
         <div className="flex justify-end pt-2">
           <button
-            className="px-8 py-4 bg-gradient-to-r from-[#0046FF] to-[#001BB7] text-white font-semibold rounded-xl shadow-lg shadow-[#0046FF]/25 hover:shadow-[#0046FF]/40 focus:outline-none focus:ring-2 focus:ring-[#0046FF] focus:ring-offset-2 focus:ring-offset-transparent transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] relative overflow-hidden group hover:from-[#0055FF] hover:to-[#0025CC] flex items-center gap-3"
+            onClick={generatePDF}
+            disabled={isGenerating}
+            className="px-8 py-4 bg-gradient-to-r from-[#0046FF] to-[#001BB7] text-white font-semibold rounded-xl shadow-lg shadow-[#0046FF]/25 hover:shadow-[#0046FF]/40 focus:outline-none focus:ring-2 focus:ring-[#0046FF] focus:ring-offset-2 focus:ring-offset-transparent transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] relative overflow-hidden group hover:from-[#0055FF] hover:to-[#0025CC] flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
           >
-            <span className="relative z-10">
-              <AnimatedText speed={40}>
-                {t.dashboard.generateReport}
-              </AnimatedText>
-            </span>
-            <svg
-              className="w-5 h-5 transform group-hover:translate-x-1 transition-transform duration-300 relative z-10"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            {/* Shine effect */}
-            <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+            {isGenerating ? (
+              <>
+                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin relative z-10" />
+                <span className="relative z-10">Generating PDF...</span>
+              </>
+            ) : (
+              <>
+                <span className="relative z-10">
+                  <AnimatedText speed={40}>
+                    {t.dashboard.generateReport}
+                  </AnimatedText>
+                </span>
+                <svg
+                  className="w-5 h-5 transform group-hover:translate-x-1 transition-transform duration-300 relative z-10"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                {/* Shine effect */}
+                <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+              </>
+            )}
           </button>
         </div>
       </div>
