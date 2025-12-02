@@ -31,6 +31,7 @@ type Course = {
   weeklyHours: number;
   schedule: ScheduleEntry[];
   students: Student[];
+  enrolledStudentsCount?: number; // Count from API (GET returns count, not full list)
   room?: string;
   semester?: string;
   year?: string;
@@ -193,6 +194,8 @@ const mapAPICourseToCourse = (apiCourse: APICourse): Course => {
     endTime: s.end_time,
   }));
 
+  // GET /api/courses returns enrolledStudentsCount, not enrolledStudents array
+  // POST /api/courses returns enrolledStudents array
   const students: Student[] = (apiCourse.enrolledStudents || []).map((s) => ({
     id: s.studentId,
     firstName: s.name,
@@ -209,6 +212,7 @@ const mapAPICourseToCourse = (apiCourse: APICourse): Course => {
     weeklyHours: apiCourse.weeklyHours,
     schedule,
     students,
+    enrolledStudentsCount: apiCourse.enrolledStudentsCount || 0, // Use count from API
     room: apiCourse.roomNumber,
     semester: apiCourse.semester,
     year: apiCourse.academicYear,
@@ -572,7 +576,7 @@ const Courses = () => {
     
     // Schedule validation (optional but if provided, must be valid)
     if (schedule.length > 0) {
-      for (const entry of schedule) {
+    for (const entry of schedule) {
         if (!entry.day) {
           setNotification({ show: true, message: 'Schedule day is required', type: 'error' });
           setTimeout(() => setNotification({ show: false, message: '' }), 3000);
@@ -591,12 +595,12 @@ const Courses = () => {
           return false;
         }
         // Validate end time is after start time
-        if (entry.startTime >= entry.endTime) {
+      if (entry.startTime >= entry.endTime) {
           setNotification({ show: true, message: 'End time must be after start time', type: 'error' });
-          setTimeout(() => setNotification({ show: false, message: '' }), 3000);
-          return false;
-        }
+        setTimeout(() => setNotification({ show: false, message: '' }), 3000);
+        return false;
       }
+    }
     }
     
     return true;
@@ -677,8 +681,8 @@ const Courses = () => {
 
       if (response.ok && data.success) {
         setNotification({ show: true, message: data.message || t.courses.courseAdded, type: 'success' });
-        resetForm();
-        setActiveTab('list');
+    resetForm();
+    setActiveTab('list');
         // Refresh courses list
         await fetchCourses(search, pagination.page, filters, pagination.limit);
       } else {
@@ -694,7 +698,7 @@ const Courses = () => {
       setNotification({ show: true, message: 'Network error. Please try again.', type: 'error' });
     } finally {
       setIsCreating(false);
-      setTimeout(() => setNotification({ show: false, message: '' }), 3000);
+    setTimeout(() => setNotification({ show: false, message: '' }), 3000);
     }
   };
 
@@ -857,39 +861,39 @@ const Courses = () => {
                   <p>Loading courses...</p>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr style={{ borderColor: 'var(--border-primary)' }}>
-                        <th className="px-6 py-4 text-left text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>
-                          {t.courses.courseName}
-                        </th>
-                        <th className="px-6 py-4 text-left text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>
-                          {t.courses.courseCode}
-                        </th>
-                        <th className="px-6 py-4 text-left text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>
-                          {t.courses.weeklyHours}
-                        </th>
-                        <th className="px-6 py-4 text-left text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>
-                          {t.courses.weeklyScheduleSummary}
-                        </th>
-                        <th className="px-6 py-4 text-left text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>
-                          {t.courses.totalStudents}
-                        </th>
-                        <th className="px-6 py-4 text-right text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>
-                          {t.courses.actions}
-                        </th>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr style={{ borderColor: 'var(--border-primary)' }}>
+                      <th className="px-6 py-4 text-left text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>
+                        {t.courses.courseName}
+                      </th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>
+                        {t.courses.courseCode}
+                      </th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>
+                        {t.courses.weeklyHours}
+                      </th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>
+                        {t.courses.weeklyScheduleSummary}
+                      </th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>
+                        {t.courses.totalStudents}
+                      </th>
+                      <th className="px-6 py-4 text-right text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>
+                        {t.courses.actions}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredCourses.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="px-6 py-12 text-center" style={{ color: 'var(--text-tertiary)' }}>
+                          {t.courses.noCoursesFound}
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {filteredCourses.length === 0 ? (
-                        <tr>
-                          <td colSpan={6} className="px-6 py-12 text-center" style={{ color: 'var(--text-tertiary)' }}>
-                            {t.courses.noCoursesFound}
-                          </td>
-                        </tr>
-                      ) : (
-                        filteredCourses.map((course) => (
+                    ) : (
+                      filteredCourses.map((course) => (
                         <tr
                           key={course.id}
                           className="border-t hover:bg-opacity-50 transition-colors duration-200"
@@ -908,7 +912,7 @@ const Courses = () => {
                             <span className="text-sm">{formatScheduleSummary(course.schedule)}</span>
                           </td>
                           <td className="px-6 py-4" style={{ color: 'var(--text-primary)' }}>
-                            {course.students.length}
+                            {course.enrolledStudentsCount !== undefined ? course.enrolledStudentsCount : course.students.length}
                           </td>
                           <td className="px-6 py-4 text-right">
                             <div className="relative inline-block">
@@ -940,11 +944,11 @@ const Courses = () => {
                             </div>
                           </td>
                         </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
               )}
             </div>
 
@@ -1369,30 +1373,30 @@ const Courses = () => {
                           </div>
                         ) : (
                           filteredStudents.map((student) => (
-                            <label
-                              key={student.id}
-                              className="flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors"
-                              style={{ backgroundColor: '#1e1e2d', opacity: 1 }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.backgroundColor = '#2A2A3B';
+                          <label
+                            key={student.id}
+                            className="flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors"
+                            style={{ backgroundColor: '#1e1e2d', opacity: 1 }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = '#2A2A3B';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = '#1e1e2d';
+                            }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectedStudents.includes(student.id)}
+                              onChange={() => toggleStudent(student.id)}
+                              className="w-4 h-4 rounded"
+                              style={{
+                                accentColor: '#0046FF',
                               }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.backgroundColor = '#1e1e2d';
-                              }}
-                            >
-                              <input
-                                type="checkbox"
-                                checked={selectedStudents.includes(student.id)}
-                                onChange={() => toggleStudent(student.id)}
-                                className="w-4 h-4 rounded"
-                                style={{
-                                  accentColor: '#0046FF',
-                                }}
-                              />
-                              <span style={{ color: '#E4E4E7', opacity: 1 }}>
-                                {student.firstName} {student.lastName} ({student.studentNumber})
-                              </span>
-                            </label>
+                            />
+                            <span style={{ color: '#E4E4E7', opacity: 1 }}>
+                              {student.firstName} {student.lastName} ({student.studentNumber})
+                            </span>
+                          </label>
                           ))
                         )}
                       </div>
