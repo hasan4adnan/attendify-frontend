@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useLanguage } from '../context/LanguageContext';
+import { useUser } from '../context/UserContext';
 import AnimatedText from '../components/AnimatedText';
 import ActionMenu, { ActionMenuItem } from '../components/ActionMenu';
 import { getCourses, Course } from '../utils/courseData';
@@ -29,48 +30,108 @@ type Student = {
   attendance: AttendanceRecord[]; // Attendance history
 };
 
-const initialStudents: Student[] = [
-  { 
-    id: 1, 
-    firstName: 'Ahmet', 
-    lastName: 'Yılmaz', 
-    studentNumber: '1001', 
-    email: 'ahmet.yilmaz@example.com', 
-    verificationStatus: 'verified',
-    courseIds: [1],
-    attendance: [
-      { id: '1', date: '2024-01-15', courseId: 1, courseName: 'Introduction to Computer Science', courseCode: 'CS101', status: 'present' },
-      { id: '2', date: '2024-01-17', courseId: 1, courseName: 'Introduction to Computer Science', courseCode: 'CS101', status: 'absent' },
-    ],
-  },
-  { 
-    id: 2, 
-    firstName: 'Ayşe', 
-    lastName: 'Demir', 
-    studentNumber: '1002', 
-    email: 'ayse.demir@example.com', 
-    verificationStatus: 'pending',
-    courseIds: [1],
-    attendance: [
-      { id: '3', date: '2024-01-15', courseId: 1, courseName: 'Introduction to Computer Science', courseCode: 'CS101', status: 'present' },
-      { id: '4', date: '2024-01-17', courseId: 1, courseName: 'Introduction to Computer Science', courseCode: 'CS101', status: 'present' },
-    ],
-  },
-  { 
-    id: 3, 
-    firstName: 'Mehmet', 
-    lastName: 'Kaya', 
-    studentNumber: '1003', 
-    email: 'mehmet.kaya@example.com', 
-    verificationStatus: 'notVerified',
-    courseIds: [],
-    attendance: [],
-  },
-];
+// API Response Types for Students
+type APIStudentCourse = {
+  course_id: number;
+  course_name: string;
+  course_code: string;
+  description?: string;
+  weekly_hours: number;
+  academic_year?: string;
+  course_category?: string;
+  instructor_id: number;
+  created_at?: string;
+};
+
+type APIStudentAttendance = {
+  status: string;
+  message: string;
+  markedAt?: string;
+  sessionId?: number;
+};
+
+type APIStudent = {
+  studentId: number;
+  name: string;
+  surname: string;
+  studentNumber: string;
+  department?: string | null;
+  faceEmbedding?: string | null;
+  photoPath?: string | null;
+  faceScanStatus: 'Verified' | 'Not Verified';
+  courses: string;
+  coursesFull: APIStudentCourse[];
+  attendance: APIStudentAttendance;
+  createdBy?: number | null;
+  createdAt: string;
+};
+
+type APIStudentsResponse = {
+  success: boolean;
+  data: APIStudent[];
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+};
+
+type APICreateStudentResponse = {
+  success: boolean;
+  message: string;
+  data: APIStudent;
+};
+
+// Map API student to component Student type
+const mapAPIStudentToStudent = (apiStudent: APIStudent): Student => {
+  // Map face scan status
+  let verificationStatus: VerificationStatus = 'notVerified';
+  if (apiStudent.faceScanStatus === 'Verified') {
+    verificationStatus = 'verified';
+  } else if (apiStudent.faceScanStatus === 'Not Verified') {
+    verificationStatus = 'notVerified';
+  }
+
+  // Map course IDs
+  const courseIds = apiStudent.coursesFull.map(c => c.course_id);
+
+  // Map attendance records (simplified - API provides today's attendance status)
+  const attendance: AttendanceRecord[] = [];
+  if (apiStudent.attendance.status === 'Present' || apiStudent.attendance.status === 'Absent') {
+    const today = new Date().toISOString().split('T')[0];
+    attendance.push({
+      id: apiStudent.attendance.sessionId?.toString() || '1',
+      date: today,
+      courseId: 0, // Will be set from course data if available
+      courseName: '',
+      courseCode: '',
+      status: apiStudent.attendance.status.toLowerCase() as AttendanceStatus,
+    });
+  }
+
+  // Generate email from name and surname
+  const email = `${apiStudent.name.toLowerCase()}.${apiStudent.surname.toLowerCase()}@example.com`;
+
+  return {
+    id: apiStudent.studentId,
+    firstName: apiStudent.name,
+    lastName: apiStudent.surname,
+    studentNumber: apiStudent.studentNumber,
+    email: email,
+    verificationStatus: verificationStatus,
+    courseIds: courseIds,
+    attendance: attendance,
+  };
+};
 
 const Students = () => {
-  const [students, setStudents] = useState<Student[]>(initialStudents);
+  const { t } = useLanguage();
+  const { token, user } = useUser();
+  const [students, setStudents] = useState<Student[]>([]);
   const [courses, setCourses] = useState<Course[]>(getCourses());
+  const [isLoading, setIsLoading] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [studentNumber, setStudentNumber] = useState('');
@@ -86,8 +147,9 @@ const Students = () => {
   const [editEmail, setEditEmail] = useState('');
   const [editCourseIds, setEditCourseIds] = useState<number[]>([]);
   const [notification, setNotification] = useState<{ show: boolean, message: string }>({ show: false, message: '' });
-  const [currentPage, setCurrentPage] = useState(1);
+  const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0, totalPages: 0 });
   const [searchFocused, setSearchFocused] = useState(false);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [faceScanModal, setFaceScanModal] = useState<{ open: boolean, student?: Student }>({ open: false });
   const [scanning, setScanning] = useState(false);
   const [scanComplete, setScanComplete] = useState(false);
@@ -101,8 +163,79 @@ const Students = () => {
   const buttonRefs = useRef<{ [key: number]: HTMLButtonElement | null }>({});
   const courseDropdownRef = useRef<HTMLDivElement>(null);
   const editCourseDropdownRef = useRef<HTMLDivElement>(null);
-  const studentsPerPage = 10;
-  const { t } = useLanguage();
+
+  // Fetch students from API
+  const fetchStudents = useCallback(async (searchTerm: string = '', page: number = 1, limit: number = 10) => {
+    if (!token) {
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString(),
+      });
+
+      if (searchTerm.trim()) {
+        params.append('search', searchTerm.trim());
+      }
+
+      const response = await fetch(`http://localhost:3001/api/students?${params.toString()}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data: APIStudentsResponse = await response.json();
+
+      if (response.ok && data.success) {
+        const mappedStudents = data.data.map(mapAPIStudentToStudent);
+        setStudents(mappedStudents);
+        if (data.pagination) {
+          setPagination(data.pagination);
+        }
+      } else {
+        setNotification({ show: true, message: data.message || 'Failed to fetch students' });
+        setTimeout(() => setNotification({ show: false, message: '' }), 3000);
+      }
+    } catch (error) {
+      console.error('Fetch students error:', error);
+      setNotification({ show: true, message: 'Network error. Please try again.' });
+      setTimeout(() => setNotification({ show: false, message: '' }), 3000);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [token]);
+
+  // Fetch students on mount
+  useEffect(() => {
+    if (token) {
+      fetchStudents(search, pagination.page, pagination.limit);
+    }
+  }, [token, pagination.page, pagination.limit, fetchStudents]);
+
+  // Debounced search
+  useEffect(() => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    searchTimeoutRef.current = setTimeout(() => {
+      if (token) {
+        setPagination(prev => ({ ...prev, page: 1 }));
+        fetchStudents(search, 1, pagination.limit);
+      }
+    }, 500);
+
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [search, token, pagination.limit, fetchStudents]);
 
   // Sync courses from localStorage
   useEffect(() => {
@@ -235,33 +368,133 @@ const Students = () => {
     );
   };
 
+  // Validate student form
+  const validateStudentForm = (): boolean => {
+    const trimmedName = firstName.trim();
+    const trimmedSurname = lastName.trim();
+    const trimmedStudentNumber = studentNumber.trim();
+
+    // Name validation: 2-100 characters
+    if (!trimmedName) {
+      setNotification({ show: true, message: 'Name is required' });
+      setTimeout(() => setNotification({ show: false, message: '' }), 3000);
+      return false;
+    }
+    if (trimmedName.length < 2 || trimmedName.length > 100) {
+      setNotification({ show: true, message: 'Name must be between 2 and 100 characters' });
+      setTimeout(() => setNotification({ show: false, message: '' }), 3000);
+      return false;
+    }
+
+    // Surname validation: 2-100 characters
+    if (!trimmedSurname) {
+      setNotification({ show: true, message: 'Surname is required' });
+      setTimeout(() => setNotification({ show: false, message: '' }), 3000);
+      return false;
+    }
+    if (trimmedSurname.length < 2 || trimmedSurname.length > 100) {
+      setNotification({ show: true, message: 'Surname must be between 2 and 100 characters' });
+      setTimeout(() => setNotification({ show: false, message: '' }), 3000);
+      return false;
+    }
+
+    // Student number validation: 3-50 characters
+    if (!trimmedStudentNumber) {
+      setNotification({ show: true, message: 'Student number is required' });
+      setTimeout(() => setNotification({ show: false, message: '' }), 3000);
+      return false;
+    }
+    if (trimmedStudentNumber.length < 3 || trimmedStudentNumber.length > 50) {
+      setNotification({ show: true, message: 'Student number must be between 3 and 50 characters' });
+      setTimeout(() => setNotification({ show: false, message: '' }), 3000);
+      return false;
+    }
+
+    return true;
+  };
+
   // Add Student
-  const handleAddStudent = (e: React.FormEvent) => {
+  const handleAddStudent = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!firstName || !lastName || !studentNumber || !email) return;
+    
+    if (!validateStudentForm()) {
+      return;
+    }
 
-    setStudents([
-      ...students,
-      {
-        id: students.length > 0 ? Math.max(...students.map(s => s.id)) + 1 : 1,
-        firstName,
-        lastName,
-        studentNumber,
-        email,
-        verificationStatus: 'notVerified',
-        courseIds: selectedCourseIds,
-        attendance: [],
-      },
-    ]);
+    if (!token) {
+      setNotification({ show: true, message: 'Authentication required. Please log in.' });
+      setTimeout(() => setNotification({ show: false, message: '' }), 3000);
+      return;
+    }
 
-    setFirstName('');
-    setLastName('');
-    setStudentNumber('');
-    setEmail('');
-    setSelectedCourseIds([]);
+    setIsCreating(true);
+    try {
+      const requestBody: any = {
+        name: firstName.trim(),
+        surname: lastName.trim(),
+        studentNumber: studentNumber.trim(),
+      };
 
-    setNotification({ show: true, message: t.students.studentAdded });
-    setTimeout(() => setNotification({ show: false, message: '' }), 2000);
+      // Optional fields
+      if (email.trim()) {
+        // Note: API doesn't have email field, but we can add it if needed
+        // For now, we'll skip it as it's not in the API spec
+      }
+
+      // Add courseIds if any are selected
+      if (selectedCourseIds.length > 0) {
+        requestBody.courseIds = selectedCourseIds;
+      }
+
+      // Add createdBy if user is available
+      if (user && user.id) {
+        const userId = parseInt(user.id, 10);
+        if (!isNaN(userId)) {
+          requestBody.createdBy = userId;
+        }
+      }
+
+      const response = await fetch('http://localhost:3001/api/students', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      const data: APICreateStudentResponse = await response.json();
+
+      if (response.ok && data.success) {
+        // Reset form
+        setFirstName('');
+        setLastName('');
+        setStudentNumber('');
+        setEmail('');
+        setSelectedCourseIds([]);
+
+        setNotification({ show: true, message: data.message || t.students.studentAdded });
+        
+        // Refresh students list
+        await fetchStudents(search, pagination.page, pagination.limit);
+        
+        // Switch to list tab
+        setActiveTab('list');
+      } else {
+        // Handle validation errors
+        if (data.message) {
+          setNotification({ show: true, message: data.message });
+        } else {
+          setNotification({ show: true, message: 'Failed to create student. Please try again.' });
+        }
+      }
+    } catch (error) {
+      console.error('Create student error:', error);
+      setNotification({ show: true, message: 'Network error. Please try again.' });
+    } finally {
+      setIsCreating(false);
+      setTimeout(() => setNotification({ show: false, message: '' }), 3000);
+    }
   };
 
   // Open Edit Modal
@@ -446,14 +679,9 @@ const Students = () => {
   };
 
   // Search + Pagination
-  const filteredStudents = students.filter(s =>
-    s.firstName.toLowerCase().includes(search.toLowerCase()) ||
-    s.lastName.toLowerCase().includes(search.toLowerCase()) ||
-    s.studentNumber.includes(search) ||
-    s.email.toLowerCase().includes(search.toLowerCase())
-  );
-  const totalPages = Math.ceil(filteredStudents.length / studentsPerPage);
-  const paginatedStudents = filteredStudents.slice((currentPage - 1) * studentsPerPage, currentPage * studentsPerPage);
+  // Students are already filtered by API, no need for local filtering
+  const filteredStudents = students;
+  const paginatedStudents = students; // API handles pagination
 
   return (
     <div className="p-4 lg:p-6">
@@ -779,20 +1007,35 @@ const Students = () => {
 
             <button
               type="submit"
-                className="w-full py-4 px-6 bg-gradient-to-r from-[#0046FF] to-[#001BB7] text-white font-semibold rounded-xl shadow-lg shadow-[#0046FF]/25 hover:shadow-[#0046FF]/40 focus:outline-none focus:ring-2 focus:ring-[#0046FF] focus:ring-offset-2 focus:ring-offset-transparent transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] relative overflow-hidden group hover:from-[#0055FF] hover:to-[#0025CC]"
+                disabled={isCreating}
+                className={`w-full py-4 px-6 bg-gradient-to-r from-[#0046FF] to-[#001BB7] text-white font-semibold rounded-xl shadow-lg shadow-[#0046FF]/25 hover:shadow-[#0046FF]/40 focus:outline-none focus:ring-2 focus:ring-[#0046FF] focus:ring-offset-2 focus:ring-offset-transparent transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] relative overflow-hidden group hover:from-[#0055FF] hover:to-[#0025CC] ${
+                  isCreating ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
               >
                 <span className="relative z-10 flex items-center justify-center gap-2">
-                  <AnimatedText speed={40}>
-                    {t.students.addStudentButton}
-                  </AnimatedText>
-                  <svg
-                    className="w-5 h-5 transform group-hover:translate-x-1 transition-transform duration-300"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
+                  {isCreating ? (
+                    <>
+                      <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <span>Creating...</span>
+                    </>
+                  ) : (
+                    <>
+                      <AnimatedText speed={40}>
+                        {t.students.addStudentButton}
+                      </AnimatedText>
+                      <svg
+                        className="w-5 h-5 transform group-hover:translate-x-1 transition-transform duration-300"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                    </>
+                  )}
                 </span>
             </button>
           </form>
@@ -814,7 +1057,7 @@ const Students = () => {
                 <input
                   type="text"
                   value={search}
-                  onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
+                  onChange={e => { setSearch(e.target.value); setPagination(prev => ({ ...prev, page: 1 })); }}
                   onFocus={() => setSearchFocused(true)}
                   onBlur={() => setSearchFocused(false)}
                   placeholder={t.students.searchPlaceholder}
@@ -894,7 +1137,19 @@ const Students = () => {
                 </thead>
 
                 <tbody className="divide-y" style={{ borderColor: 'var(--border-primary)' }}>
-                  {paginatedStudents.length === 0 ? (
+                  {isLoading ? (
+                    <tr>
+                      <td colSpan={8} className="px-6 py-12 text-center" style={{ color: 'var(--text-tertiary)' }}>
+                        <div className="flex flex-col items-center gap-3">
+                          <svg className="animate-spin h-8 w-8" style={{ color: 'var(--text-primary)' }} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          <p>Loading students...</p>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : paginatedStudents.length === 0 ? (
                     <tr>
                       <td colSpan={8} className="px-6 py-12 text-center" style={{ color: 'var(--text-tertiary)' }}>
                         <div className="flex flex-col items-center gap-3">
@@ -1215,17 +1470,17 @@ const Students = () => {
             </div>
 
             {/* Pagination */}
-            {totalPages > 1 && (
+            {!isLoading && pagination.totalPages > 1 && (
               <div className="flex justify-center gap-2 mt-8">
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map(page => (
                   <button
                     key={page}
                     className={`w-10 h-10 flex items-center justify-center rounded-xl border text-base font-semibold transition-all duration-300 ${
-                      currentPage === page
+                      pagination.page === page
                         ? 'bg-gradient-to-r from-[#0046FF] to-[#001BB7] text-white border-transparent shadow-lg shadow-[#0046FF]/25 scale-110'
                         : 'bg-transparent text-[var(--text-secondary)] border-[var(--border-primary)] hover:bg-[#0046FF]/10 hover:text-[#0046FF] hover:border-[#0046FF]/30'
                       }`}
-                    onClick={() => setCurrentPage(page)}
+                    onClick={() => setPagination(prev => ({ ...prev, page }))}
                   >
                     {page}
                   </button>

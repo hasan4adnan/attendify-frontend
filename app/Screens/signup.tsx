@@ -37,6 +37,8 @@ export default function SignUpPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [userId, setUserId] = useState<number | null>(null);
+  const [isResending, setIsResending] = useState(false);
+  const [resendMessage, setResendMessage] = useState<string | null>(null);
   const { theme } = useTheme();
   const { t } = useLanguage();
   const router = useRouter();
@@ -126,6 +128,39 @@ export default function SignUpPage() {
     } else {
       // For other slides, just move to next
       nextSlide();
+    }
+  };
+
+  const handleResendVerification = async () => {
+    setIsResending(true);
+    setResendMessage(null);
+    setError(null);
+    
+    try {
+      const response = await fetch('http://localhost:3001/api/auth/resend-verification', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: email,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setResendMessage(data.message || 'Verification code has been sent to your email.');
+        // Clear the message after 5 seconds
+        setTimeout(() => setResendMessage(null), 5000);
+      } else {
+        setError(data.message || 'Failed to resend verification code. Please try again.');
+      }
+    } catch (error) {
+      console.error('Resend verification error:', error);
+      setError('Network error. Please try again.');
+    } finally {
+      setIsResending(false);
     }
   };
 
@@ -729,17 +764,40 @@ export default function SignUpPage() {
                 </AnimatedText>
                 <button
                   type="button"
-                  className="text-[#0046FF] hover:text-[#FF8040] transition-colors font-medium"
-                  onClick={() => {
-                    // Handle resend logic
-                    console.log('Resend verification code');
-                  }}
+                  disabled={isResending}
+                  className="text-[#0046FF] hover:text-[#FF8040] transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={handleResendVerification}
                 >
-                  <AnimatedText speed={40}>
-                    {t.signup.resend}
-                  </AnimatedText>
+                  {isResending ? (
+                    <span className="flex items-center gap-2">
+                      <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <AnimatedText speed={40}>
+                        Sending...
+                      </AnimatedText>
+                    </span>
+                  ) : (
+                    <AnimatedText speed={40}>
+                      {t.signup.resend}
+                    </AnimatedText>
+                  )}
                 </button>
               </p>
+              {resendMessage && (
+                <p 
+                  className="text-xs text-center flex items-center justify-center gap-2"
+                  style={{ color: '#10b981' }}
+                >
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  <AnimatedText speed={50}>
+                    {resendMessage}
+                  </AnimatedText>
+                </p>
+              )}
             </div>
           </div>
         );

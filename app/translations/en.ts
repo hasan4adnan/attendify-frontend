@@ -49,8 +49,8 @@ export const translations = {
     
     // Email slide
     emailTitle: "Let's get started",
-    emailSubtitle: 'Enter your educational email address to create your account',
-    emailPlaceholder: 'name@university.edu',
+    emailSubtitle: 'Enter your email address to create your account',
+    emailPlaceholder: 'name@example.com',
     emailMustBeEducational: 'Please use an educational email address (e.g., .edu, .edu.tr, .ac.uk)',
     
     // Name slide

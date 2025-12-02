@@ -49,8 +49,8 @@ export const translations = {
     
     // Email slide
     emailTitle: 'Hadi başlayalım',
-    emailSubtitle: 'Hesabınızı oluşturmak için eğitim e-posta adresinizi girin',
-    emailPlaceholder: 'isim@universite.edu.tr',
+    emailSubtitle: 'Hesabınızı oluşturmak için e-posta adresinizi girin',
+    emailPlaceholder: 'isim@ornek.com',
     emailMustBeEducational: 'Lütfen eğitim e-posta adresi kullanın (örn: .edu, .edu.tr, .ac.uk)',
     
     // Name slide

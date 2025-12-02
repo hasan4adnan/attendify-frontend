@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useLanguage } from '../context/LanguageContext';
+import { useUser } from '../context/UserContext';
 import AnimatedText from '../components/AnimatedText';
 import ActionMenu, { ActionMenuItem } from '../components/ActionMenu';
 import { saveCourses } from '../utils/courseData';
@@ -37,59 +38,202 @@ type Course = {
   instructor?: string;
 };
 
-// Mock students - in a real app, this would come from a shared context or API
-const mockStudents: Student[] = [
-  { id: 1, firstName: 'Ahmet', lastName: 'Yılmaz', studentNumber: '1001', email: 'ahmet.yilmaz@example.com' },
-  { id: 2, firstName: 'Ayşe', lastName: 'Demir', studentNumber: '1002', email: 'ayse.demir@example.com' },
-  { id: 3, firstName: 'Mehmet', lastName: 'Kaya', studentNumber: '1003', email: 'mehmet.kaya@example.com' },
-  { id: 4, firstName: 'Fatma', lastName: 'Şahin', studentNumber: '1004', email: 'fatma.sahin@example.com' },
-  { id: 5, firstName: 'Ali', lastName: 'Öztürk', studentNumber: '1005', email: 'ali.ozturk@example.com' },
-];
+// API Response Types for Students
+type APIStudentCourse = {
+  course_id: number;
+  course_name: string;
+  course_code: string;
+  description?: string;
+  weekly_hours: number;
+  academic_year?: string;
+  course_category?: string;
+  instructor_id: number;
+  created_at?: string;
+};
 
-const initialCourses: Course[] = [
-  {
-    id: 1,
-    name: 'Introduction to Computer Science',
-    code: 'CS101',
-    description: 'Fundamental concepts of computer science',
-    weeklyHours: 4,
-    schedule: [
-      { day: 'Mon', startTime: '09:00', endTime: '11:00' },
-      { day: 'Wed', startTime: '14:00', endTime: '15:00' },
-    ],
-    students: [mockStudents[0], mockStudents[1]],
-    room: 'A101',
-    semester: 'Fall',
-    year: '2024',
-    category: 'Theoretical',
-    instructor: 'Dr. John Doe',
-  },
-];
+type APIStudentAttendance = {
+  status: string;
+  message: string;
+  markedAt?: string;
+  sessionId?: number;
+};
+
+type APIStudent = {
+  studentId: number;
+  name: string;
+  surname: string;
+  studentNumber: string;
+  department?: string | null;
+  faceEmbedding?: string | null;
+  photoPath?: string | null;
+  faceScanStatus: 'Verified' | 'Not Verified';
+  courses: string;
+  coursesFull: APIStudentCourse[];
+  attendance: APIStudentAttendance;
+  createdBy?: number | null;
+  createdAt: string;
+};
+
+type APIStudentsResponse = {
+  success: boolean;
+  data: APIStudent[];
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+};
+
+// Map API student to component Student type
+const mapAPIStudentToStudent = (apiStudent: APIStudent): Student => {
+  // Generate email from name and surname if not available
+  const email = `${apiStudent.name.toLowerCase()}.${apiStudent.surname.toLowerCase()}@example.com`;
+  
+  return {
+    id: apiStudent.studentId,
+    firstName: apiStudent.name,
+    lastName: apiStudent.surname,
+    studentNumber: apiStudent.studentNumber,
+    email: email,
+  };
+};
+
+// initialCourses removed - courses are now fetched from API
+
+// API Response Types
+type APIScheduleEntry = {
+  schedule_id?: number;
+  course_id?: number;
+  day: string;
+  start_time: string;
+  end_time: string;
+  created_at?: string;
+};
+
+type APIEnrolledStudent = {
+  studentId: number;
+  name: string;
+  surname: string;
+  studentNumber: string;
+  department?: string;
+  enrolledAt?: string;
+};
+
+type APICourse = {
+  courseId: number;
+  courseName: string;
+  courseCode: string;
+  description?: string;
+  weeklyHours: number;
+  academicYear?: string;
+  courseCategory?: string;
+  instructorId?: number;
+  instructor?: {
+    instructorId: number;
+    name: string;
+    surname: string;
+    email: string;
+  };
+  roomNumber?: string;
+  semester?: string;
+  schedule?: APIScheduleEntry[];
+  enrolledStudents?: APIEnrolledStudent[];
+  enrolledStudentsCount?: number;
+};
+
+type APICoursesResponse = {
+  success: boolean;
+  data: APICourse[];
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+};
+
+type APICreateCourseResponse = {
+  success: boolean;
+  message: string;
+  data: APICourse;
+};
+
+// Helper functions to map between API and component formats
+const mapDayToAPI = (day: Day): string => {
+  const dayMap: Record<Day, string> = {
+    Mon: 'Monday',
+    Tue: 'Tuesday',
+    Wed: 'Wednesday',
+    Thu: 'Thursday',
+    Fri: 'Friday',
+    Sat: 'Saturday',
+    Sun: 'Sunday',
+  };
+  return dayMap[day];
+};
+
+const mapDayFromAPI = (day: string): Day => {
+  const dayMap: Record<string, Day> = {
+    Monday: 'Mon',
+    Tuesday: 'Tue',
+    Wednesday: 'Wed',
+    Thursday: 'Thu',
+    Friday: 'Fri',
+    Saturday: 'Sat',
+    Sunday: 'Sun',
+  };
+  return dayMap[day] || 'Mon';
+};
+
+const mapAPICourseToCourse = (apiCourse: APICourse): Course => {
+  const schedule: ScheduleEntry[] = (apiCourse.schedule || []).map((s) => ({
+    day: mapDayFromAPI(s.day),
+    startTime: s.start_time,
+    endTime: s.end_time,
+  }));
+
+  const students: Student[] = (apiCourse.enrolledStudents || []).map((s) => ({
+    id: s.studentId,
+    firstName: s.name,
+    lastName: s.surname,
+    studentNumber: s.studentNumber,
+    email: `${s.name.toLowerCase()}.${s.surname.toLowerCase()}@example.com`, // Fallback email
+  }));
+
+  return {
+    id: apiCourse.courseId,
+    name: apiCourse.courseName,
+    code: apiCourse.courseCode,
+    description: apiCourse.description,
+    weeklyHours: apiCourse.weeklyHours,
+    schedule,
+    students,
+    room: apiCourse.roomNumber,
+    semester: apiCourse.semester,
+    year: apiCourse.academicYear,
+    category: apiCourse.courseCategory,
+    instructor: apiCourse.instructor ? `${apiCourse.instructor.name} ${apiCourse.instructor.surname}` : undefined,
+  };
+};
 
 const Courses = () => {
   const { t } = useLanguage();
-  const [courses, setCourses] = useState<Course[]>(() => {
-    // Load from localStorage or use initial
-    const stored = typeof window !== 'undefined' ? localStorage.getItem('courses') : null;
-    if (stored) {
-      try {
-        return JSON.parse(stored);
-      } catch {
-        saveCourses(initialCourses);
-        return initialCourses;
-      }
-    }
-    saveCourses(initialCourses);
-    return initialCourses;
-  });
+  const { token, user } = useUser();
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
   const [activeTab, setActiveTab] = useState<'list' | 'add'>('list');
   const [search, setSearch] = useState('');
   const [searchFocused, setSearchFocused] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
   const [editModal, setEditModal] = useState<{ open: boolean; course?: Course }>({ open: false });
   const [deleteModal, setDeleteModal] = useState<{ open: boolean; course?: Course }>({ open: false });
-  const [notification, setNotification] = useState<{ show: boolean; message: string }>({ show: false, message: '' });
+  const [notification, setNotification] = useState<{ show: boolean; message: string; type?: 'success' | 'error' }>({ show: false, message: '' });
+  const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0, totalPages: 0 });
+  const [filters, setFilters] = useState({ instructorId: null as number | null, academicYear: null as string | null, courseCategory: null as string | null });
   const buttonRefs = useRef<{ [key: number]: HTMLButtonElement | null }>({});
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Form state
   const [courseName, setCourseName] = useState('');
@@ -106,7 +250,166 @@ const Courses = () => {
   const [focused, setFocused] = useState<string | null>(null);
   const [studentDropdownOpen, setStudentDropdownOpen] = useState(false);
   const [studentSearch, setStudentSearch] = useState('');
+  const [students, setStudents] = useState<Student[]>([]);
+  const [isLoadingStudents, setIsLoadingStudents] = useState(false);
+  const [studentsPagination, setStudentsPagination] = useState({ page: 1, limit: 100, total: 0, totalPages: 0 });
   const studentDropdownRef = useRef<HTMLDivElement>(null);
+  const studentsSearchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Fetch courses from API
+  const fetchCourses = useCallback(async (searchTerm: string = '', page: number = 1, currentFilters = filters, currentLimit = pagination.limit) => {
+    if (!token) {
+      setNotification({ show: true, message: 'Authentication required. Please log in.', type: 'error' });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: currentLimit.toString(),
+      });
+
+      if (searchTerm.trim()) {
+        params.append('search', searchTerm.trim());
+      }
+      if (currentFilters.instructorId) {
+        params.append('instructorId', currentFilters.instructorId.toString());
+      }
+      if (currentFilters.academicYear) {
+        params.append('academicYear', currentFilters.academicYear);
+      }
+      if (currentFilters.courseCategory) {
+        params.append('courseCategory', currentFilters.courseCategory);
+      }
+
+      const response = await fetch(`http://localhost:3001/api/courses?${params.toString()}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data: APICoursesResponse = await response.json();
+
+      if (response.ok && data.success) {
+        const mappedCourses = data.data.map(mapAPICourseToCourse);
+        setCourses(mappedCourses);
+        if (data.pagination) {
+          setPagination(data.pagination);
+        }
+        // Save to localStorage for Students component access
+        saveCourses(mappedCourses);
+      } else {
+        setNotification({ show: true, message: data.message || 'Failed to fetch courses', type: 'error' });
+      }
+    } catch (error) {
+      console.error('Fetch courses error:', error);
+      setNotification({ show: true, message: 'Network error. Please try again.', type: 'error' });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [token]);
+
+  // Fetch students from API
+  const fetchStudents = useCallback(async (searchTerm: string = '', page: number = 1, limit: number = 100) => {
+    if (!token) {
+      return;
+    }
+
+    setIsLoadingStudents(true);
+    try {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString(),
+      });
+
+      if (searchTerm.trim()) {
+        params.append('search', searchTerm.trim());
+      }
+
+      const response = await fetch(`http://localhost:3001/api/students?${params.toString()}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data: APIStudentsResponse = await response.json();
+
+      if (response.ok && data.success) {
+        const mappedStudents = data.data.map(mapAPIStudentToStudent);
+        setStudents(mappedStudents);
+        if (data.pagination) {
+          setStudentsPagination(data.pagination);
+        }
+      } else {
+        console.error('Failed to fetch students:', data.message || 'Unknown error');
+      }
+    } catch (error) {
+      console.error('Fetch students error:', error);
+    } finally {
+      setIsLoadingStudents(false);
+    }
+  }, [token]);
+
+  // Fetch students on mount
+  useEffect(() => {
+    if (token) {
+      fetchStudents('', 1, 100); // Fetch first 100 students
+    }
+  }, [token, fetchStudents]);
+
+  // Debounced student search
+  useEffect(() => {
+    if (studentsSearchTimeoutRef.current) {
+      clearTimeout(studentsSearchTimeoutRef.current);
+    }
+
+    studentsSearchTimeoutRef.current = setTimeout(() => {
+      if (token) {
+        setStudentsPagination(prev => ({ ...prev, page: 1 }));
+        fetchStudents(studentSearch, 1, 100);
+      }
+    }, 500);
+
+    return () => {
+      if (studentsSearchTimeoutRef.current) {
+        clearTimeout(studentsSearchTimeoutRef.current);
+      }
+    };
+  }, [studentSearch, token, fetchStudents]);
+
+  // Fetch courses on mount and when filters/pagination change
+  useEffect(() => {
+    if (token) {
+      fetchCourses(search, pagination.page, filters, pagination.limit);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, pagination.page, filters.instructorId, filters.academicYear, filters.courseCategory, pagination.limit]);
+
+  // Debounced search
+  useEffect(() => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    searchTimeoutRef.current = setTimeout(() => {
+      if (token) {
+        setPagination(prev => ({ ...prev, page: 1 }));
+        fetchCourses(search, 1, filters, pagination.limit);
+      }
+    }, 500);
+
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search]);
 
   // Close student dropdown when clicking outside
   useEffect(() => {
@@ -144,13 +447,8 @@ const Courses = () => {
       .join(', ');
   };
 
-  // Filter courses
-  const filteredCourses = courses.filter(
-    (c) =>
-      c.name.toLowerCase().includes(search.toLowerCase()) ||
-      c.code.toLowerCase().includes(search.toLowerCase()) ||
-      c.description?.toLowerCase().includes(search.toLowerCase())
-  );
+  // Filter courses (now handled by API, but keep for local filtering if needed)
+  const filteredCourses = courses;
 
   // Handle add schedule entry
   const addScheduleEntry = () => {
@@ -178,11 +476,11 @@ const Courses = () => {
 
   // Get selected student objects
   const getSelectedStudentObjects = (): Student[] => {
-    return mockStudents.filter((s) => selectedStudents.includes(s.id));
+    return students.filter((s) => selectedStudents.includes(s.id));
   };
 
-  // Filter students for dropdown
-  const filteredStudents = mockStudents.filter(
+  // Filter students for dropdown (already filtered by API, but can add local filtering if needed)
+  const filteredStudents = students.filter(
     (s) =>
       `${s.firstName} ${s.lastName}`.toLowerCase().includes(studentSearch.toLowerCase()) ||
       s.studentNumber.includes(studentSearch) ||
@@ -223,99 +521,181 @@ const Courses = () => {
     setOpenMenuId(null);
   };
 
-  // Validate form
+  // Validate form (matching API validation rules)
   const validateForm = (): boolean => {
-    if (!courseName.trim()) {
-      setNotification({ show: true, message: t.courses.courseNameRequired });
+    const trimmedCourseName = courseName.trim();
+    const trimmedCourseCode = courseCode.trim();
+    
+    // Course name validation: 2-255 characters
+    if (!trimmedCourseName) {
+      setNotification({ show: true, message: 'Course name is required', type: 'error' });
       setTimeout(() => setNotification({ show: false, message: '' }), 3000);
       return false;
     }
-    if (!courseCode.trim()) {
-      setNotification({ show: true, message: t.courses.courseCodeRequired });
+    if (trimmedCourseName.length < 2 || trimmedCourseName.length > 255) {
+      setNotification({ show: true, message: 'Course name must be between 2 and 255 characters', type: 'error' });
       setTimeout(() => setNotification({ show: false, message: '' }), 3000);
       return false;
     }
-    if (!weeklyHours || isNaN(Number(weeklyHours)) || Number(weeklyHours) <= 0) {
-      setNotification({ show: true, message: t.courses.weeklyHoursRequired });
+    
+    // Course code validation: 2-50 characters
+    if (!trimmedCourseCode) {
+      setNotification({ show: true, message: 'Course code is required', type: 'error' });
       setTimeout(() => setNotification({ show: false, message: '' }), 3000);
       return false;
     }
-    if (schedule.length === 0) {
-      setNotification({ show: true, message: t.courses.scheduleRequired });
+    if (trimmedCourseCode.length < 2 || trimmedCourseCode.length > 50) {
+      setNotification({ show: true, message: 'Course code must be between 2 and 50 characters', type: 'error' });
       setTimeout(() => setNotification({ show: false, message: '' }), 3000);
       return false;
     }
-    // Validate time ranges
-    for (const entry of schedule) {
-      if (entry.startTime >= entry.endTime) {
-        setNotification({ show: true, message: t.courses.invalidTimeRange });
-        setTimeout(() => setNotification({ show: false, message: '' }), 3000);
-        return false;
+    
+    // Weekly hours validation: 0-168 (float)
+    if (!weeklyHours || isNaN(Number(weeklyHours))) {
+      setNotification({ show: true, message: 'Weekly hours is required', type: 'error' });
+      setTimeout(() => setNotification({ show: false, message: '' }), 3000);
+      return false;
+    }
+    const hours = Number(weeklyHours);
+    if (hours < 0 || hours > 168) {
+      setNotification({ show: true, message: 'Weekly hours must be between 0 and 168', type: 'error' });
+      setTimeout(() => setNotification({ show: false, message: '' }), 3000);
+      return false;
+    }
+    
+    // Description validation: max 2000 characters (optional)
+    if (description.trim().length > 2000) {
+      setNotification({ show: true, message: 'Description must be less than 2000 characters', type: 'error' });
+      setTimeout(() => setNotification({ show: false, message: '' }), 3000);
+      return false;
+    }
+    
+    // Schedule validation (optional but if provided, must be valid)
+    if (schedule.length > 0) {
+      for (const entry of schedule) {
+        if (!entry.day) {
+          setNotification({ show: true, message: 'Schedule day is required', type: 'error' });
+          setTimeout(() => setNotification({ show: false, message: '' }), 3000);
+          return false;
+        }
+        if (!entry.startTime || !entry.endTime) {
+          setNotification({ show: true, message: 'Schedule start and end times are required', type: 'error' });
+          setTimeout(() => setNotification({ show: false, message: '' }), 3000);
+          return false;
+        }
+        // Validate time format (HH:MM)
+        const timeRegex = /^([0-1][0-9]|2[0-3]):[0-5][0-9]$/;
+        if (!timeRegex.test(entry.startTime) || !timeRegex.test(entry.endTime)) {
+          setNotification({ show: true, message: 'Schedule times must be in HH:MM format', type: 'error' });
+          setTimeout(() => setNotification({ show: false, message: '' }), 3000);
+          return false;
+        }
+        // Validate end time is after start time
+        if (entry.startTime >= entry.endTime) {
+          setNotification({ show: true, message: 'End time must be after start time', type: 'error' });
+          setTimeout(() => setNotification({ show: false, message: '' }), 3000);
+          return false;
+        }
       }
     }
+    
     return true;
   };
 
   // Handle save course
-  const handleSaveCourse = (e: React.FormEvent) => {
+  const handleSaveCourse = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
 
-    const enrolledStudents = getSelectedStudentObjects();
-
-    if (editModal.course) {
-      // Update existing course
-      const updatedCourses = courses.map((c) =>
-        c.id === editModal.course!.id
-          ? {
-              ...c,
-              name: courseName.trim(),
-              code: courseCode.trim(),
-              description: description.trim() || undefined,
-              weeklyHours: Number(weeklyHours),
-              schedule,
-              students: enrolledStudents,
-              room: room.trim() || undefined,
-              semester: semester || undefined,
-              year: year || undefined,
-              category: category || undefined,
-              instructor: instructor.trim() || undefined,
-            }
-          : c
-      );
-      setCourses(updatedCourses);
-      
-      // Save to localStorage for Students component access
-      saveCourses(updatedCourses);
-      
-      setNotification({ show: true, message: t.courses.courseUpdated });
-      setEditModal({ open: false });
-    } else {
-      // Add new course
-      const newCourse: Course = {
-        id: courses.length > 0 ? Math.max(...courses.map((c) => c.id)) + 1 : 1,
-        name: courseName.trim(),
-        code: courseCode.trim(),
-        description: description.trim() || undefined,
-        weeklyHours: Number(weeklyHours),
-        schedule,
-        students: enrolledStudents,
-        room: room.trim() || undefined,
-        semester: semester || undefined,
-        year: year || undefined,
-        category: category || undefined,
-        instructor: instructor.trim() || undefined,
-      };
-      setCourses([...courses, newCourse]);
-      setNotification({ show: true, message: t.courses.courseAdded });
-      
-      // Save to localStorage for Students component access
-      saveCourses([...courses, newCourse]);
+    if (!token || !user) {
+      setNotification({ show: true, message: 'Authentication required. Please log in.', type: 'error' });
+      setTimeout(() => setNotification({ show: false, message: '' }), 3000);
+      return;
     }
 
-    resetForm();
-    setActiveTab('list');
-    setTimeout(() => setNotification({ show: false, message: '' }), 3000);
+    // Get instructor ID from logged-in user
+    const instructorId = parseInt(user.id, 10);
+    if (isNaN(instructorId)) {
+      setNotification({ show: true, message: 'Invalid user ID. Please log in again.', type: 'error' });
+      setTimeout(() => setNotification({ show: false, message: '' }), 3000);
+      return;
+    }
+
+    if (editModal.course) {
+      // TODO: Implement update course API endpoint when available
+      setNotification({ show: true, message: 'Update functionality will be available soon.', type: 'error' });
+      setTimeout(() => setNotification({ show: false, message: '' }), 3000);
+      return;
+    }
+
+    // Create new course
+    setIsCreating(true);
+    try {
+      const requestBody: any = {
+        courseName: courseName.trim(),
+        courseCode: courseCode.trim(),
+        weeklyHours: Number(weeklyHours),
+        instructorId: instructorId, // Always include instructorId from logged-in user
+      };
+
+      if (description.trim()) {
+        requestBody.description = description.trim();
+      }
+      if (room.trim()) {
+        requestBody.roomNumber = room.trim();
+      }
+      if (semester) {
+        requestBody.semester = semester;
+      }
+      if (year) {
+        requestBody.academicYear = year;
+      }
+      if (category) {
+        requestBody.courseCategory = category;
+      }
+      if (selectedStudents.length > 0) {
+        requestBody.studentIds = selectedStudents;
+      }
+      if (schedule.length > 0) {
+        requestBody.schedule = schedule.map((s) => ({
+          day: mapDayToAPI(s.day),
+          start_time: s.startTime,
+          end_time: s.endTime,
+        }));
+      }
+
+      const response = await fetch('http://localhost:3001/api/courses', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      const data: APICreateCourseResponse = await response.json();
+
+      if (response.ok && data.success) {
+        setNotification({ show: true, message: data.message || t.courses.courseAdded, type: 'success' });
+        resetForm();
+        setActiveTab('list');
+        // Refresh courses list
+        await fetchCourses(search, pagination.page, filters, pagination.limit);
+      } else {
+        // Handle validation errors
+        if (data.message) {
+          setNotification({ show: true, message: data.message, type: 'error' });
+        } else {
+          setNotification({ show: true, message: 'Failed to create course. Please try again.', type: 'error' });
+        }
+      }
+    } catch (error) {
+      console.error('Create course error:', error);
+      setNotification({ show: true, message: 'Network error. Please try again.', type: 'error' });
+    } finally {
+      setIsCreating(false);
+      setTimeout(() => setNotification({ show: false, message: '' }), 3000);
+    }
   };
 
   // Handle delete course
@@ -379,7 +759,11 @@ const Courses = () => {
         {/* Notification */}
         {notification.show && (
           <div
-            className="p-4 rounded-xl backdrop-blur-xl border bg-green-500/10 border-green-500/30 text-green-400 transition-all duration-300 animate-in slide-in-from-top-2"
+            className={`p-4 rounded-xl backdrop-blur-xl border transition-all duration-300 animate-in slide-in-from-top-2 ${
+              notification.type === 'error'
+                ? 'bg-red-500/10 border-red-500/30 text-red-400'
+                : 'bg-green-500/10 border-green-500/30 text-green-400'
+            }`}
           >
             {notification.message}
           </div>
@@ -464,39 +848,48 @@ const Courses = () => {
                 borderColor: 'var(--border-primary)',
               }}
             >
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr style={{ borderColor: 'var(--border-primary)' }}>
-                      <th className="px-6 py-4 text-left text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>
-                        {t.courses.courseName}
-                      </th>
-                      <th className="px-6 py-4 text-left text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>
-                        {t.courses.courseCode}
-                      </th>
-                      <th className="px-6 py-4 text-left text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>
-                        {t.courses.weeklyHours}
-                      </th>
-                      <th className="px-6 py-4 text-left text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>
-                        {t.courses.weeklyScheduleSummary}
-                      </th>
-                      <th className="px-6 py-4 text-left text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>
-                        {t.courses.totalStudents}
-                      </th>
-                      <th className="px-6 py-4 text-right text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>
-                        {t.courses.actions}
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredCourses.length === 0 ? (
-                      <tr>
-                        <td colSpan={6} className="px-6 py-12 text-center" style={{ color: 'var(--text-tertiary)' }}>
-                          {t.courses.noCoursesFound}
-                        </td>
+              {isLoading ? (
+                <div className="p-12 text-center" style={{ color: 'var(--text-tertiary)' }}>
+                  <svg className="animate-spin h-8 w-8 mx-auto mb-4" style={{ color: 'var(--text-primary)' }} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <p>Loading courses...</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr style={{ borderColor: 'var(--border-primary)' }}>
+                        <th className="px-6 py-4 text-left text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>
+                          {t.courses.courseName}
+                        </th>
+                        <th className="px-6 py-4 text-left text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>
+                          {t.courses.courseCode}
+                        </th>
+                        <th className="px-6 py-4 text-left text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>
+                          {t.courses.weeklyHours}
+                        </th>
+                        <th className="px-6 py-4 text-left text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>
+                          {t.courses.weeklyScheduleSummary}
+                        </th>
+                        <th className="px-6 py-4 text-left text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>
+                          {t.courses.totalStudents}
+                        </th>
+                        <th className="px-6 py-4 text-right text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>
+                          {t.courses.actions}
+                        </th>
                       </tr>
-                    ) : (
-                      filteredCourses.map((course) => (
+                    </thead>
+                    <tbody>
+                      {filteredCourses.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="px-6 py-12 text-center" style={{ color: 'var(--text-tertiary)' }}>
+                            {t.courses.noCoursesFound}
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredCourses.map((course) => (
                         <tr
                           key={course.id}
                           className="border-t hover:bg-opacity-50 transition-colors duration-200"
@@ -547,12 +940,56 @@ const Courses = () => {
                             </div>
                           </td>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
+
+            {/* Pagination */}
+            {!isLoading && pagination.totalPages > 1 && (
+              <div className="flex items-center justify-between pt-4">
+                <div style={{ color: 'var(--text-tertiary)' }}>
+                  Showing {((pagination.page - 1) * pagination.limit) + 1} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} courses
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      if (pagination.page > 1) {
+                        setPagination(prev => ({ ...prev, page: prev.page - 1 }));
+                      }
+                    }}
+                    disabled={pagination.page === 1}
+                    className="px-4 py-2 rounded-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{
+                      backgroundColor: pagination.page === 1 ? 'var(--bg-tertiary)' : 'var(--bg-secondary)',
+                      border: '1px solid var(--border-primary)',
+                      color: 'var(--text-primary)',
+                    }}
+                  >
+                    Previous
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (pagination.page < pagination.totalPages) {
+                        setPagination(prev => ({ ...prev, page: prev.page + 1 }));
+                      }
+                    }}
+                    disabled={pagination.page === pagination.totalPages}
+                    className="px-4 py-2 rounded-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{
+                      backgroundColor: pagination.page === pagination.totalPages ? 'var(--bg-tertiary)' : 'var(--bg-secondary)',
+                      border: '1px solid var(--border-primary)',
+                      color: 'var(--text-primary)',
+                    }}
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -746,7 +1183,9 @@ const Courses = () => {
                     onChange={(e) => setWeeklyHours(e.target.value)}
                     onFocus={() => setFocused('weeklyHours')}
                     onBlur={() => setFocused(null)}
-                    min="1"
+                    min="0"
+                    max="168"
+                    step="0.5"
                     className="w-full px-4 py-3 rounded-xl transition-all duration-300"
                     style={{
                       backgroundColor: focused === 'weeklyHours' ? 'var(--bg-tertiary)' : 'var(--bg-primary)',
@@ -916,32 +1355,46 @@ const Courses = () => {
                         />
                       </div>
                       <div className="p-2 space-y-1">
-                        {filteredStudents.map((student) => (
-                          <label
-                            key={student.id}
-                            className="flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors"
-                            style={{ backgroundColor: '#1e1e2d', opacity: 1 }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.backgroundColor = '#2A2A3B';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.backgroundColor = '#1e1e2d';
-                            }}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={selectedStudents.includes(student.id)}
-                              onChange={() => toggleStudent(student.id)}
-                              className="w-4 h-4 rounded"
-                              style={{
-                                accentColor: '#0046FF',
+                        {isLoadingStudents ? (
+                          <div className="p-4 text-center" style={{ color: '#E4E4E7' }}>
+                            <svg className="animate-spin h-5 w-5 mx-auto mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <p className="text-sm">Loading students...</p>
+                          </div>
+                        ) : filteredStudents.length === 0 ? (
+                          <div className="p-4 text-center" style={{ color: '#E4E4E7' }}>
+                            <p className="text-sm">No students found</p>
+                          </div>
+                        ) : (
+                          filteredStudents.map((student) => (
+                            <label
+                              key={student.id}
+                              className="flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors"
+                              style={{ backgroundColor: '#1e1e2d', opacity: 1 }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.backgroundColor = '#2A2A3B';
                               }}
-                            />
-                            <span style={{ color: '#E4E4E7', opacity: 1 }}>
-                              {student.firstName} {student.lastName} ({student.studentNumber})
-                            </span>
-                          </label>
-                        ))}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor = '#1e1e2d';
+                              }}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={selectedStudents.includes(student.id)}
+                                onChange={() => toggleStudent(student.id)}
+                                className="w-4 h-4 rounded"
+                                style={{
+                                  accentColor: '#0046FF',
+                                }}
+                              />
+                              <span style={{ color: '#E4E4E7', opacity: 1 }}>
+                                {student.firstName} {student.lastName} ({student.studentNumber})
+                              </span>
+                            </label>
+                          ))
+                        )}
                       </div>
                     </div>
                   )}
@@ -980,9 +1433,20 @@ const Courses = () => {
               <div className="flex gap-4 pt-4">
                 <button
                   type="submit"
-                  className="px-6 py-3 rounded-xl font-semibold transition-all duration-300 hover:scale-105 active:scale-95 bg-gradient-to-r from-[#0046FF] to-[#001BB7] text-white shadow-lg shadow-[#0046FF]/30"
+                  disabled={isCreating}
+                  className="px-6 py-3 rounded-xl font-semibold transition-all duration-300 hover:scale-105 active:scale-95 bg-gradient-to-r from-[#0046FF] to-[#001BB7] text-white shadow-lg shadow-[#0046FF]/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
-                  {t.courses.save}
+                  {isCreating ? (
+                    <>
+                      <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Creating...
+                    </>
+                  ) : (
+                    t.courses.save
+                  )}
                 </button>
                 <button
                   type="button"
