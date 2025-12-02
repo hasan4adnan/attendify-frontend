@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { useUser } from '../context/UserContext';
 import AnimatedText from '../components/AnimatedText';
@@ -9,17 +9,104 @@ import AttendanceDistributionChart from '../components/charts/AttendanceDistribu
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
+// API Response Types for Students
+type APIStudent = {
+  studentId: number;
+  name: string;
+  surname: string;
+  studentNumber: string;
+  department?: string | null;
+  faceEmbedding?: string | null;
+  photoPath?: string | null;
+  faceScanStatus: 'Verified' | 'Not Verified';
+  courses: string;
+  coursesFull: any[];
+  attendance: any;
+  createdBy?: number | null;
+  createdAt: string;
+};
+
+type APIStudentsResponse = {
+  success: boolean;
+  data: APIStudent[];
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+};
+
 export default function DashboardPage() {
   const { t } = useLanguage();
-  const { user } = useUser();
+  const { user, token } = useUser();
   const [isGenerating, setIsGenerating] = useState(false);
+  const [totalStudents, setTotalStudents] = useState<number>(0);
+  const [isLoadingStudents, setIsLoadingStudents] = useState(false);
   const chart1Ref = useRef<HTMLDivElement>(null);
   const chart2Ref = useRef<HTMLDivElement>(null);
   const dashboardRef = useRef<HTMLDivElement>(null);
 
+  // Fetch total students count
+  const fetchTotalStudents = useCallback(async () => {
+    if (!token) {
+      return;
+    }
+
+    setIsLoadingStudents(true);
+    try {
+      // Fetch first page with limit 1 to get total count from pagination
+      const response = await fetch('http://localhost:3001/api/students?page=1&limit=1', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data: APIStudentsResponse = await response.json();
+
+      if (response.ok && data.success) {
+        // Use pagination total if available, otherwise use data length
+        if (data.pagination && data.pagination.total) {
+          setTotalStudents(data.pagination.total);
+        } else {
+          // If no pagination info, fetch all students (with a high limit)
+          const allStudentsResponse = await fetch('http://localhost:3001/api/students?page=1&limit=1000', {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          });
+          const allStudentsData: APIStudentsResponse = await allStudentsResponse.json();
+          if (allStudentsResponse.ok && allStudentsData.success) {
+            setTotalStudents(allStudentsData.data.length);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Fetch total students error:', error);
+    } finally {
+      setIsLoadingStudents(false);
+    }
+  }, [token]);
+
+  // Fetch students count on mount
+  useEffect(() => {
+    if (token) {
+      fetchTotalStudents();
+    }
+  }, [token, fetchTotalStudents]);
+
+  // Format number with commas
+  const formatNumber = (num: number): string => {
+    return num.toLocaleString('en-US');
+  };
+
   const summaryCards = [
     { title: t.dashboard.todayAttendance, value: '245', change: '+12%', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z', gradient: 'from-[#0046FF] to-[#001BB7]' },
-    { title: t.dashboard.totalStudents, value: '1,234', change: '+5%', icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z', gradient: 'from-[#FF8040] to-[#FF6B35]' },
+    { title: t.dashboard.totalStudents, value: isLoadingStudents ? '...' : formatNumber(totalStudents), change: '+5%', icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z', gradient: 'from-[#FF8040] to-[#FF6B35]' },
     { title: t.dashboard.activeSessions, value: '18', change: '+3', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2', gradient: 'from-[#001BB7] to-[#0046FF]' },
     { title: t.dashboard.attendanceRate, value: '94.2%', change: '+2.1%', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z', gradient: 'from-[#0046FF] via-[#FF8040] to-[#FF6B35]' },
   ];

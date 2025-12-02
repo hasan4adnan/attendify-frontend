@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { useTheme } from '../context/ThemeContext';
+import { useUser } from '../context/UserContext';
 import { getCourses, type Course } from '../utils/courseData';
 import AnimatedText from '../components/AnimatedText';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
@@ -58,6 +59,92 @@ type StudentReport = {
     status: AttendanceStatus;
     notes?: string;
   }>;
+};
+
+// API Response Types for Students
+type APIStudentCourse = {
+  course_id: number;
+  course_name: string;
+  course_code: string;
+  description?: string;
+  weekly_hours: number;
+  academic_year?: string;
+  course_category?: string;
+  instructor_id: number;
+  created_at?: string;
+};
+
+type APIStudentAttendance = {
+  status: string;
+  message: string;
+  markedAt?: string;
+  sessionId?: number;
+};
+
+type APIStudent = {
+  studentId: number;
+  name: string;
+  surname: string;
+  studentNumber: string;
+  department?: string | null;
+  faceEmbedding?: string | null;
+  photoPath?: string | null;
+  faceScanStatus: 'Verified' | 'Not Verified';
+  courses: string;
+  coursesFull: APIStudentCourse[];
+  attendance: APIStudentAttendance;
+  createdBy?: number | null;
+  createdAt: string;
+};
+
+type APIStudentsResponse = {
+  success: boolean;
+  data: APIStudent[];
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+};
+
+// Map API student to StudentReport type
+const mapAPIStudentToStudentReport = (apiStudent: APIStudent): StudentReport => {
+  // Map course rates from coursesFull
+  const courseRates = apiStudent.coursesFull.map(course => ({
+    courseId: course.course_id,
+    courseCode: course.course_code,
+    courseName: course.course_name,
+    rate: 85 + Math.floor(Math.random() * 15), // Mock rate - would come from actual attendance data
+  }));
+
+  // Calculate overall rate (average of course rates or mock)
+  const overallRate = courseRates.length > 0
+    ? Math.round(courseRates.reduce((sum, c) => sum + c.rate, 0) / courseRates.length)
+    : 85;
+
+  // Generate mock history (would come from actual attendance API)
+  const history: Array<{
+    date: string;
+    courseCode: string;
+    courseName: string;
+    sessionType: SessionType;
+    status: AttendanceStatus;
+    notes?: string;
+  }> = [];
+
+  // Generate email
+  const email = `${apiStudent.name.toLowerCase()}.${apiStudent.surname.toLowerCase()}@example.com`;
+
+  return {
+    id: apiStudent.studentId,
+    name: `${apiStudent.name} ${apiStudent.surname}`,
+    studentNumber: apiStudent.studentNumber,
+    email: email,
+    overallRate: overallRate,
+    courseRates: courseRates,
+    history: history,
+  };
 };
 
 // Mock data generators
@@ -159,6 +246,7 @@ const generateStudentReports = (): StudentReport[] => {
 export default function ReportsPage() {
   const { t } = useLanguage();
   const { actualTheme } = useTheme();
+  const { token } = useUser();
   const isDark = actualTheme === 'dark';
   
   // State
@@ -178,17 +266,84 @@ export default function ReportsPage() {
   const [isDateDropdownOpen, setIsDateDropdownOpen] = useState(false);
   const [isSessionTypeDropdownOpen, setIsSessionTypeDropdownOpen] = useState(false);
   const [exporting, setExporting] = useState<'pdf' | 'csv' | null>(null);
+  const [isLoadingStudents, setIsLoadingStudents] = useState(false);
   
   const courseDropdownRef = useRef<HTMLDivElement>(null);
   const dateDropdownRef = useRef<HTMLDivElement>(null);
   const sessionTypeDropdownRef = useRef<HTMLDivElement>(null);
   const studentDropdownRef = useRef<HTMLDivElement>(null);
+  const studentSearchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Fetch students from API
+  const fetchStudents = useCallback(async (searchTerm: string = '', page: number = 1, limit: number = 100) => {
+    if (!token) {
+      return;
+    }
+
+    setIsLoadingStudents(true);
+    try {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString(),
+      });
+
+      if (searchTerm.trim()) {
+        params.append('search', searchTerm.trim());
+      }
+
+      const response = await fetch(`http://localhost:3001/api/students?${params.toString()}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data: APIStudentsResponse = await response.json();
+
+      if (response.ok && data.success) {
+        const mappedStudentReports = data.data.map(mapAPIStudentToStudentReport);
+        setStudentReports(mappedStudentReports);
+      } else {
+        console.error('Failed to fetch students:', data.message || 'Unknown error');
+      }
+    } catch (error) {
+      console.error('Fetch students error:', error);
+    } finally {
+      setIsLoadingStudents(false);
+    }
+  }, [token]);
+
+  // Fetch students on mount
+  useEffect(() => {
+    if (token) {
+      fetchStudents('', 1, 100);
+    }
+  }, [token, fetchStudents]);
+
+  // Debounced student search
+  useEffect(() => {
+    if (studentSearchTimeoutRef.current) {
+      clearTimeout(studentSearchTimeoutRef.current);
+    }
+
+    studentSearchTimeoutRef.current = setTimeout(() => {
+      if (token) {
+        fetchStudents(studentSearch, 1, 100);
+      }
+    }, 500);
+
+    return () => {
+      if (studentSearchTimeoutRef.current) {
+        clearTimeout(studentSearchTimeoutRef.current);
+      }
+    };
+  }, [studentSearch, token, fetchStudents]);
   
   // Load courses
   useEffect(() => {
     const loadedCourses = getCourses();
     setCourses(loadedCourses);
-    setStudentReports(generateStudentReports());
   }, []);
   
   // Generate sessions when filters change
@@ -317,7 +472,7 @@ export default function ReportsPage() {
     alert(`${format.toUpperCase()} export completed!`);
   };
   
-  // Filter students for search
+  // Filter students for search (already filtered by API, but can add local filtering if needed)
   const filteredStudents = studentReports.filter(s =>
     s.name.toLowerCase().includes(studentSearch.toLowerCase()) ||
     s.studentNumber.includes(studentSearch) ||
@@ -1113,7 +1268,7 @@ export default function ReportsPage() {
                   color: 'var(--text-primary)',
                 }}
               />
-              {isStudentDropdownOpen && filteredStudents.length > 0 && (
+              {isStudentDropdownOpen && (
                 <div
                   className="absolute z-50 w-full mt-2 rounded-2xl border shadow-2xl max-h-60 overflow-y-auto"
                   style={{
@@ -1122,36 +1277,50 @@ export default function ReportsPage() {
                     opacity: 1,
                   }}
                 >
-                  {filteredStudents.map((student) => (
-                    <button
-                      key={student.id}
-                      type="button"
-                      onClick={() => {
-                        setSelectedStudent(student);
-                        setStudentSearch(student.name);
-                        setIsStudentDropdownOpen(false);
-                      }}
-                      className="w-full px-4 py-3 rounded-xl text-left transition-all duration-200 hover:scale-[1.02]"
-                      style={{
-                        backgroundColor: selectedStudent?.id === student.id ? 'rgba(0, 70, 255, 0.15)' : '#1e1e2d',
-                        color: '#E4E4E7',
-                        border: selectedStudent?.id === student.id ? '1px solid rgba(0, 70, 255, 0.3)' : '1px solid transparent',
-                      }}
-                      onMouseEnter={(e) => {
-                        if (selectedStudent?.id !== student.id) {
-                          e.currentTarget.style.backgroundColor = '#2A2A3B';
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (selectedStudent?.id !== student.id) {
-                          e.currentTarget.style.backgroundColor = '#1e1e2d';
-                        }
-                      }}
-                    >
-                      <div className="font-semibold">{student.name}</div>
-                      <div className="text-xs text-gray-400">{student.studentNumber} • {student.email}</div>
-                    </button>
-                  ))}
+                  {isLoadingStudents ? (
+                    <div className="p-4 text-center" style={{ color: '#E4E4E7' }}>
+                      <svg className="animate-spin h-5 w-5 mx-auto mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <p className="text-sm">Loading students...</p>
+                    </div>
+                  ) : filteredStudents.length === 0 ? (
+                    <div className="p-4 text-center" style={{ color: '#E4E4E7' }}>
+                      <p className="text-sm">No students found</p>
+                    </div>
+                  ) : (
+                    filteredStudents.map((student) => (
+                      <button
+                        key={student.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedStudent(student);
+                          setStudentSearch(student.name);
+                          setIsStudentDropdownOpen(false);
+                        }}
+                        className="w-full px-4 py-3 rounded-xl text-left transition-all duration-200 hover:scale-[1.02]"
+                        style={{
+                          backgroundColor: selectedStudent?.id === student.id ? 'rgba(0, 70, 255, 0.15)' : '#1e1e2d',
+                          color: '#E4E4E7',
+                          border: selectedStudent?.id === student.id ? '1px solid rgba(0, 70, 255, 0.3)' : '1px solid transparent',
+                        }}
+                        onMouseEnter={(e) => {
+                          if (selectedStudent?.id !== student.id) {
+                            e.currentTarget.style.backgroundColor = '#2A2A3B';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (selectedStudent?.id !== student.id) {
+                            e.currentTarget.style.backgroundColor = '#1e1e2d';
+                          }
+                        }}
+                      >
+                        <div className="font-semibold">{student.name}</div>
+                        <div className="text-xs text-gray-400">{student.studentNumber} • {student.email}</div>
+                      </button>
+                    ))
+                  )}
                 </div>
               )}
             </div>
