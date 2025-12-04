@@ -73,9 +73,27 @@ export function UserProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({ email, password }),
       });
 
+      // Check if response is ok (status 200-299)
+      if (!response.ok) {
+        // Try to parse error response
+        try {
+          const errorData = await response.json();
+          return { 
+            success: false, 
+            error: errorData.message || 'Authentication failed. Please check your credentials and try again.' 
+          };
+        } catch {
+          return { 
+            success: false, 
+            error: 'Authentication failed. Please check your credentials and try again.' 
+          };
+        }
+      }
+
       const data: LoginResponse = await response.json();
 
-      if (data.success && data.token && data.user) {
+      // Strictly check that success is true AND token and user exist
+      if (data.success === true && data.token && data.user) {
         // Convert API user format to UserProfile format
         const userProfile: UserProfile = {
           id: data.user.id.toString(),
@@ -96,11 +114,18 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
         return { success: true };
       } else {
-        return { success: false, error: 'Invalid credentials' };
+        // If success is false or missing token/user, authentication failed
+        return { 
+          success: false, 
+          error: 'This account is not authenticated. Please authenticate your account and then try again.' 
+        };
       }
     } catch (error) {
       console.error('Login error:', error);
-      return { success: false, error: 'Network error. Please try again.' };
+      return { 
+        success: false, 
+        error: 'Network error. Please check your connection and try again.' 
+      };
     }
   };
 
@@ -109,8 +134,23 @@ export function UserProvider({ children }: { children: ReactNode }) {
     setToken(null);
     
     if (typeof window !== 'undefined') {
-      localStorage.removeItem('userProfile');
-      localStorage.removeItem('authToken');
+      // Save user preferences before clearing (theme and language)
+      const savedTheme = localStorage.getItem('theme');
+      const savedLanguage = localStorage.getItem('language');
+      
+      // Clear all localStorage data
+      localStorage.clear();
+      
+      // Restore user preferences (these are not account-specific)
+      if (savedTheme) {
+        localStorage.setItem('theme', savedTheme);
+      }
+      if (savedLanguage) {
+        localStorage.setItem('language', savedLanguage);
+      }
+      
+      // Clear sessionStorage to ensure no session data persists
+      sessionStorage.clear();
     }
   };
 

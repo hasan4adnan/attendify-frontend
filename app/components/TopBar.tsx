@@ -1,21 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useUser } from '../context/UserContext';
 
 interface TopBarProps {
   mobileMenuOpen: boolean;
   setMobileMenuOpen: (open: boolean) => void;
   sidebarCollapsed?: boolean;
 }
-
-// Fake admin data
-const adminData = {
-  fullName: 'Dr. John Doe',
-  email: 'john.doe@university.edu',
-  role: 'Administrator',
-  schoolName: 'University of Technology',
-  avatar: null, // In a real app, this would be an image URL
-};
 
 // Fake notifications data
 const notifications = [
@@ -50,12 +42,20 @@ const notifications = [
 ];
 
 export default function TopBar({ mobileMenuOpen, setMobileMenuOpen, sidebarCollapsed = false }: TopBarProps) {
+  const { user } = useUser();
   const [searchFocused, setSearchFocused] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [adminDropdownOpen, setAdminDropdownOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
 
   const unreadCount = notifications.filter(n => n.unread).length;
+
+  // Get user display data
+  const fullName = user ? `${user.firstName} ${user.lastName}` : '';
+  const userEmail = user?.email || '';
+  const userRole = user?.role || '';
+  const userSchool = user?.school || '';
+  const userAvatar = user?.avatar || null;
 
   // Check if desktop on mount and resize
   useEffect(() => {
@@ -401,15 +401,15 @@ export default function TopBar({ mobileMenuOpen, setMobileMenuOpen, sidebarColla
               <div 
                 className="absolute inset-0 bg-gradient-to-br from-[#0046FF] to-[#001BB7] opacity-0 group-hover:opacity-20 transition-opacity duration-300 rounded-full"
               />
-              {adminData.avatar ? (
+              {userAvatar ? (
                 <img 
-                  src={adminData.avatar} 
-                  alt={adminData.fullName}
+                  src={userAvatar} 
+                  alt={fullName}
                   className="w-full h-full rounded-full object-cover relative z-10"
                 />
               ) : (
                 <span className="relative z-10">
-                  {getInitials(adminData.fullName)}
+                  {fullName ? getInitials(fullName) : 'U'}
                 </span>
               )}
             </button>
@@ -444,14 +444,14 @@ export default function TopBar({ mobileMenuOpen, setMobileMenuOpen, sidebarColla
                         opacity: 1,
                       }}
                     >
-                      {adminData.avatar ? (
+                      {userAvatar ? (
                         <img 
-                          src={adminData.avatar} 
-                          alt={adminData.fullName}
+                          src={userAvatar} 
+                          alt={fullName}
                           className="w-full h-full rounded-full object-cover"
                         />
                       ) : (
-                        getInitials(adminData.fullName)
+                        fullName ? getInitials(fullName) : 'U'
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -462,7 +462,7 @@ export default function TopBar({ mobileMenuOpen, setMobileMenuOpen, sidebarColla
                           opacity: 1,
                         }}
                       >
-                        {adminData.fullName}
+                        {fullName || 'User'}
                       </h4>
                       <p 
                         className="text-sm truncate"
@@ -471,7 +471,7 @@ export default function TopBar({ mobileMenuOpen, setMobileMenuOpen, sidebarColla
                           opacity: 1,
                         }}
                       >
-                        {adminData.email}
+                        {userEmail || 'No email'}
                       </p>
                     </div>
                   </div>
@@ -502,7 +502,7 @@ export default function TopBar({ mobileMenuOpen, setMobileMenuOpen, sidebarColla
                         opacity: 1,
                       }}
                     >
-                      {adminData.role}
+                      {userRole || '—'}
                     </p>
                   </div>
                   <div>
@@ -522,7 +522,7 @@ export default function TopBar({ mobileMenuOpen, setMobileMenuOpen, sidebarColla
                         opacity: 1,
                       }}
                     >
-                      {adminData.schoolName}
+                      {userSchool || '—'}
                     </p>
                   </div>
                 </div>

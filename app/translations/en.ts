@@ -30,6 +30,7 @@ export const translations = {
     and: ' and ',
     privacyPolicy: 'Privacy Policy',
     agreeToTerms: '',
+    authenticationFailed: 'This account is not authenticated. Please authenticate your account and then try again.',
   },
 
   // Signup Page

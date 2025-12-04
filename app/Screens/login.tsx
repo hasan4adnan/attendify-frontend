@@ -44,14 +44,18 @@ export default function LoginPage() {
     try {
       const result = await login(email, password);
       
-      if (result.success) {
+      // Only redirect if authentication was successful
+      if (result.success === true) {
+        // Small delay to ensure state is updated
+        await new Promise(resolve => setTimeout(resolve, 100));
         // Redirect to dashboard on successful login
         router.push('/dashboard');
       } else {
-        setError(result.error || 'Login failed. Please try again.');
+        // Show error message - do NOT redirect
+        setError(result.error || t.login.authenticationFailed || 'This account is not authenticated. Please authenticate your account and then try again.');
       }
     } catch (err) {
-      setError('An unexpected error occurred. Please try again.');
+      setError(t.login.authenticationFailed || 'An unexpected error occurred. Please try again.');
     } finally {
       setIsLoading(false);
     }

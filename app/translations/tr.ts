@@ -30,6 +30,7 @@ export const translations = {
     and: ' ve ',
     privacyPolicy: 'Gizlilik Politikamızı',
     agreeToTerms: ' kabul etmiş olursunuz',
+    authenticationFailed: 'Bu hesap doğrulanmamış. Lütfen hesabınızı doğrulayın ve tekrar deneyin.',
   },
 
   // Signup Page

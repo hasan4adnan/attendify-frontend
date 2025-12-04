@@ -14,6 +14,7 @@ export default function DashboardLayout({
   const router = useRouter();
 
   useEffect(() => {
+    // Strictly check authentication - redirect immediately if not authenticated
     if (!isLoading && !isAuthenticated) {
       router.push('/');
     }
@@ -34,7 +35,8 @@ export default function DashboardLayout({
     );
   }
 
-  // Don't render dashboard if not authenticated
+  // Strictly block dashboard access if not authenticated
+  // Return null to prevent any rendering while redirecting
   if (!isAuthenticated) {
     return null;
   }
