@@ -358,7 +358,16 @@ const Courses = () => {
       const data: APIStudentsResponse = await response.json();
 
       if (response.ok && data.success) {
-        const mappedStudents = data.data.map(mapAPIStudentToStudent);
+        // Filter students by instructor: Only show students created by the current user
+        // Admins can see all students, instructors can only see their own
+        const currentUserId = user ? parseInt(user.id, 10) : null;
+        const isAdmin = user?.role?.toLowerCase() === 'admin';
+        
+        const filteredApiStudents = isAdmin 
+          ? data.data 
+          : data.data.filter(apiStudent => apiStudent.createdBy === currentUserId);
+        
+        const mappedStudents = filteredApiStudents.map(mapAPIStudentToStudent);
         setStudents(mappedStudents);
         if (data.pagination) {
           setStudentsPagination(data.pagination);
@@ -371,7 +380,7 @@ const Courses = () => {
     } finally {
       setIsLoadingStudents(false);
     }
-  }, [token]);
+  }, [token, user]);
 
   // Fetch students on mount
   useEffect(() => {

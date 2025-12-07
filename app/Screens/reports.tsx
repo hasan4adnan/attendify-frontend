@@ -247,7 +247,7 @@ const generateStudentReports = (): StudentReport[] => {
 export default function ReportsPage() {
   const { t } = useLanguage();
   const { actualTheme } = useTheme();
-  const { token } = useUser();
+  const { token, user } = useUser();
   const isDark = actualTheme === 'dark';
   
   // State
@@ -310,7 +310,16 @@ export default function ReportsPage() {
       const data: APIStudentsResponse = await response.json();
 
       if (response.ok && data.success) {
-        const mappedStudentReports = data.data.map(mapAPIStudentToStudentReport);
+        // Filter students by instructor: Only show students created by the current user
+        // Admins can see all students, instructors can only see their own
+        const currentUserId = user ? parseInt(user.id, 10) : null;
+        const isAdmin = user?.role?.toLowerCase() === 'admin';
+        
+        const filteredApiStudents = isAdmin 
+          ? data.data 
+          : data.data.filter(apiStudent => apiStudent.createdBy === currentUserId);
+        
+        const mappedStudentReports = filteredApiStudents.map(mapAPIStudentToStudentReport);
         setStudentReports(mappedStudentReports);
       } else {
         console.error('Failed to fetch students:', data.message || 'Unknown error');
@@ -320,7 +329,7 @@ export default function ReportsPage() {
     } finally {
       setIsLoadingStudents(false);
     }
-  }, [token]);
+  }, [token, user]);
 
   // Fetch students on mount
   useEffect(() => {
