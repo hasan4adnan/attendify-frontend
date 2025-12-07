@@ -420,15 +420,10 @@ const Students = () => {
       return false;
     }
 
-    // Department validation: required, 2-100 characters
+    // Department validation: optional, max 255 characters
     const trimmedDepartment = department.trim();
-    if (!trimmedDepartment) {
-      setNotification({ show: true, message: 'Department is required' });
-      setTimeout(() => setNotification({ show: false, message: '' }), 3000);
-      return false;
-    }
-    if (trimmedDepartment.length < 2 || trimmedDepartment.length > 100) {
-      setNotification({ show: true, message: 'Department must be between 2 and 100 characters' });
+    if (trimmedDepartment && trimmedDepartment.length > 255) {
+      setNotification({ show: true, message: 'Department must be less than 255 characters' });
       setTimeout(() => setNotification({ show: false, message: '' }), 3000);
       return false;
     }
@@ -452,20 +447,18 @@ const Students = () => {
 
     setIsCreating(true);
     try {
-      // Format department with capitalized words
-      const formattedDepartment = capitalizeWords(department);
-      
+      // Build request body - createdBy is not included (API defaults to authenticated user)
       const requestBody: any = {
         name: firstName.trim(),
         surname: lastName.trim(),
         studentNumber: studentNumber.trim(),
-        department: formattedDepartment,
       };
 
       // Optional fields
-      if (email.trim()) {
-        // Note: API doesn't have email field, but we can add it if needed
-        // For now, we'll skip it as it's not in the API spec
+      const trimmedDepartment = department.trim();
+      if (trimmedDepartment) {
+        // Format department with capitalized words
+        requestBody.department = capitalizeWords(trimmedDepartment);
       }
 
       // Add courseIds if any are selected
@@ -473,13 +466,10 @@ const Students = () => {
         requestBody.courseIds = selectedCourseIds;
       }
 
-      // Add createdBy if user is available
-      if (user && user.id) {
-        const userId = parseInt(user.id, 10);
-        if (!isNaN(userId)) {
-          requestBody.createdBy = userId;
-        }
-      }
+      // Note: universityId, faceEmbedding, photoPath, and createdBy are not included
+      // - universityId defaults to creator's university
+      // - createdBy defaults to authenticated user
+      // - faceEmbedding and photoPath are not part of the form
 
       const response = await fetch('http://localhost:3001/api/students', {
         method: 'POST',
@@ -490,9 +480,17 @@ const Students = () => {
         body: JSON.stringify(requestBody),
       });
 
+      // Handle different error status codes
+      if (response.status === 401) {
+        setNotification({ show: true, message: 'Authentication failed. Please log in again.' });
+        setIsCreating(false);
+        setTimeout(() => setNotification({ show: false, message: '' }), 3000);
+        return;
+      }
+
       const data: APICreateStudentResponse = await response.json();
 
-      if (response.ok && data.success) {
+      if (response.status === 201 && data.success) {
         // Reset form
         setFirstName('');
         setLastName('');
@@ -509,12 +507,20 @@ const Students = () => {
         // Switch to list tab
         setActiveTab('list');
       } else {
-        // Handle validation errors
-        if (data.message) {
-          setNotification({ show: true, message: data.message });
-        } else {
-          setNotification({ show: true, message: 'Failed to create student. Please try again.' });
+        // Handle specific error status codes
+        let errorMessage = 'Failed to create student. Please try again.';
+        
+        if (response.status === 400) {
+          errorMessage = data.message || 'Validation error. Please check your input and try again.';
+        } else if (response.status === 404) {
+          errorMessage = 'One or more selected courses were not found. Please refresh and try again.';
+        } else if (response.status === 409) {
+          errorMessage = data.message || 'A student with this student number already exists in your university. Please use a different student number.';
+        } else if (data.message) {
+          errorMessage = data.message;
         }
+        
+        setNotification({ show: true, message: errorMessage });
       }
     } catch (error) {
       console.error('Create student error:', error);
