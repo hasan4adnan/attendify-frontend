@@ -162,6 +162,12 @@ type APICreateCourseResponse = {
   data: APICourse;
 };
 
+type APIUpdateCourseResponse = {
+  success: boolean;
+  message: string;
+  data: APICourse;
+};
+
 // Helper functions to map between API and component formats
 const mapDayToAPI = (day: Day): string => {
   const dayMap: Record<Day, string> = {
@@ -641,9 +647,100 @@ const Courses = () => {
     }
 
     if (editModal.course) {
-      // TODO: Implement update course API endpoint when available
-      setNotification({ show: true, message: 'Update functionality will be available soon.', type: 'error' });
-      setTimeout(() => setNotification({ show: false, message: '' }), 3000);
+      // Update existing course
+      setIsCreating(true);
+      try {
+        // Build request body - all fields are optional for update
+        const requestBody: any = {};
+
+        if (courseName.trim()) {
+          requestBody.courseName = courseName.trim();
+        }
+        if (courseCode.trim()) {
+          requestBody.courseCode = courseCode.trim();
+        }
+        if (weeklyHours) {
+          requestBody.weeklyHours = Number(weeklyHours);
+        }
+        if (description.trim()) {
+          requestBody.description = description.trim();
+        }
+        if (room.trim()) {
+          requestBody.roomNumber = room.trim();
+        }
+        if (semester) {
+          requestBody.semester = semester;
+        }
+        if (year) {
+          requestBody.academicYear = year;
+        }
+        if (category) {
+          requestBody.courseCategory = category;
+        }
+        if (schedule.length > 0) {
+          requestBody.schedule = schedule.map((s) => ({
+            day: mapDayToAPI(s.day),
+            start_time: s.startTime,
+            end_time: s.endTime,
+          }));
+        }
+
+        const response = await fetch(`http://localhost:3001/api/courses/${editModal.course.id}`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestBody),
+        });
+
+        // Handle different error status codes
+        if (response.status === 401) {
+          setNotification({ show: true, message: 'Authentication failed. Please log in again.', type: 'error' });
+          setIsCreating(false);
+          setTimeout(() => setNotification({ show: false, message: '' }), 3000);
+          return;
+        }
+
+        if (response.status === 403) {
+          setNotification({ show: true, message: 'You do not have permission to update this course. Only the course owner can update.', type: 'error' });
+          setIsCreating(false);
+          setTimeout(() => setNotification({ show: false, message: '' }), 3000);
+          return;
+        }
+
+        const data: APIUpdateCourseResponse = await response.json();
+
+        if (response.ok && data.success) {
+          setNotification({ show: true, message: data.message || t.courses.courseUpdated || 'Course updated successfully', type: 'success' });
+          resetForm();
+          setEditModal({ open: false });
+          setActiveTab('list');
+          // Refresh courses list
+          await fetchCourses(search, pagination.page, filters, pagination.limit);
+        } else {
+          // Handle specific error status codes
+          let errorMessage = 'Failed to update course. Please try again.';
+          
+          if (response.status === 400) {
+            errorMessage = data.message || 'Validation error. Please check your input and try again.';
+          } else if (response.status === 404) {
+            errorMessage = 'Course not found. Please refresh and try again.';
+          } else if (response.status === 409) {
+            errorMessage = data.message || 'A course with this code already exists in your university. Please use a different course code.';
+          } else if (data.message) {
+            errorMessage = data.message;
+          }
+          
+          setNotification({ show: true, message: errorMessage, type: 'error' });
+        }
+      } catch (error) {
+        console.error('Update course error:', error);
+        setNotification({ show: true, message: 'Network error. Please try again.', type: 'error' });
+      } finally {
+        setIsCreating(false);
+        setTimeout(() => setNotification({ show: false, message: '' }), 3000);
+      }
       return;
     }
 
@@ -741,16 +838,70 @@ const Courses = () => {
   };
 
   // Handle delete course
-  const handleDeleteCourse = () => {
-    if (deleteModal.course) {
-      const updatedCourses = courses.filter((c) => c.id !== deleteModal.course!.id);
-      setCourses(updatedCourses);
-      
-      // Save to localStorage for Students component access
-      saveCourses(updatedCourses);
-      
-      setNotification({ show: true, message: t.courses.courseDeleted });
-      setDeleteModal({ open: false });
+  const handleDeleteCourse = async () => {
+    if (!deleteModal.course) return;
+
+    if (!token) {
+      setNotification({ show: true, message: 'Authentication required. Please log in.', type: 'error' });
+      setTimeout(() => setNotification({ show: false, message: '' }), 3000);
+      return;
+    }
+
+    try {
+      const response = await fetch(`http://localhost:3001/api/courses/${deleteModal.course.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      // Handle different error status codes
+      if (response.status === 401) {
+        setNotification({ show: true, message: 'Authentication failed. Please log in again.', type: 'error' });
+        setDeleteModal({ open: false });
+        setTimeout(() => setNotification({ show: false, message: '' }), 3000);
+        return;
+      }
+
+      if (response.status === 403) {
+        setNotification({ show: true, message: 'You do not have permission to delete this course. Only the course owner can delete.', type: 'error' });
+        setDeleteModal({ open: false });
+        setTimeout(() => setNotification({ show: false, message: '' }), 3000);
+        return;
+      }
+
+      if (response.status === 400) {
+        setNotification({ show: true, message: 'Invalid course ID format.', type: 'error' });
+        setDeleteModal({ open: false });
+        setTimeout(() => setNotification({ show: false, message: '' }), 3000);
+        return;
+      }
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setNotification({ show: true, message: data.message || t.courses.courseDeleted || 'Course deleted successfully', type: 'success' });
+        setDeleteModal({ open: false });
+        
+        // Refresh courses list
+        await fetchCourses(search, pagination.page, filters, pagination.limit);
+      } else {
+        // Handle specific error status codes
+        let errorMessage = 'Failed to delete course. Please try again.';
+        
+        if (response.status === 404) {
+          errorMessage = data.message || 'Course not found. Please refresh and try again.';
+        } else if (data.message) {
+          errorMessage = data.message;
+        }
+        
+        setNotification({ show: true, message: errorMessage, type: 'error' });
+      }
+    } catch (error) {
+      console.error('Delete course error:', error);
+      setNotification({ show: true, message: 'Network error. Please try again.', type: 'error' });
+    } finally {
       setTimeout(() => setNotification({ show: false, message: '' }), 3000);
     }
   };

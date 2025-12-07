@@ -505,6 +505,21 @@ const Students = () => {
       return false;
     }
 
+    // Email validation: required, valid email format
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      setNotification({ show: true, message: 'Email is required' });
+      setTimeout(() => setNotification({ show: false, message: '' }), 3000);
+      return false;
+    }
+    // Basic email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(trimmedEmail)) {
+      setNotification({ show: true, message: 'Please enter a valid email address' });
+      setTimeout(() => setNotification({ show: false, message: '' }), 3000);
+      return false;
+    }
+
     // Department validation: optional, max 255 characters
     const trimmedDepartment = department.trim();
     if (trimmedDepartment && trimmedDepartment.length > 255) {
@@ -536,6 +551,7 @@ const Students = () => {
       const requestBody: any = {
         name: firstName.trim(),
         surname: lastName.trim(),
+        email: email.trim(),
         studentNumber: studentNumber.trim(),
       };
 
