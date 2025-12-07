@@ -623,14 +623,6 @@ const Courses = () => {
       return;
     }
 
-    // Get instructor ID from logged-in user
-    const instructorId = parseInt(user.id, 10);
-    if (isNaN(instructorId)) {
-      setNotification({ show: true, message: 'Invalid user ID. Please log in again.', type: 'error' });
-      setTimeout(() => setNotification({ show: false, message: '' }), 3000);
-      return;
-    }
-
     if (editModal.course) {
       // TODO: Implement update course API endpoint when available
       setNotification({ show: true, message: 'Update functionality will be available soon.', type: 'error' });
@@ -641,11 +633,11 @@ const Courses = () => {
     // Create new course
     setIsCreating(true);
     try {
+      // Build request body - instructorId is not included (API ignores it, uses authenticated user)
       const requestBody: any = {
         courseName: courseName.trim(),
         courseCode: courseCode.trim(),
         weeklyHours: Number(weeklyHours),
-        instructorId: instructorId, // Always include instructorId from logged-in user
       };
 
       if (description.trim()) {
@@ -683,28 +675,51 @@ const Courses = () => {
         body: JSON.stringify(requestBody),
       });
 
+      // Handle different error status codes
+      if (response.status === 401) {
+        setNotification({ show: true, message: 'Authentication failed. Please log in again.', type: 'error' });
+        setIsCreating(false);
+        setTimeout(() => setNotification({ show: false, message: '' }), 3000);
+        return;
+      }
+
+      if (response.status === 403) {
+        setNotification({ show: true, message: 'You do not have permission to create courses. Only instructors and admins can create courses.', type: 'error' });
+        setIsCreating(false);
+        setTimeout(() => setNotification({ show: false, message: '' }), 3000);
+        return;
+      }
+
       const data: APICreateCourseResponse = await response.json();
 
-      if (response.ok && data.success) {
+      if (response.status === 201 && data.success) {
         setNotification({ show: true, message: data.message || t.courses.courseAdded, type: 'success' });
-    resetForm();
-    setActiveTab('list');
+        resetForm();
+        setActiveTab('list');
         // Refresh courses list
         await fetchCourses(search, pagination.page, filters, pagination.limit);
       } else {
-        // Handle validation errors
-        if (data.message) {
-          setNotification({ show: true, message: data.message, type: 'error' });
-        } else {
-          setNotification({ show: true, message: 'Failed to create course. Please try again.', type: 'error' });
+        // Handle specific error status codes
+        let errorMessage = 'Failed to create course. Please try again.';
+        
+        if (response.status === 400) {
+          errorMessage = data.message || 'Validation error. Please check your input and try again.';
+        } else if (response.status === 404) {
+          errorMessage = 'One or more selected students were not found. Please refresh and try again.';
+        } else if (response.status === 409) {
+          errorMessage = data.message || 'A course with this code already exists in your university. Please use a different course code.';
+        } else if (data.message) {
+          errorMessage = data.message;
         }
+        
+        setNotification({ show: true, message: errorMessage, type: 'error' });
       }
     } catch (error) {
       console.error('Create course error:', error);
       setNotification({ show: true, message: 'Network error. Please try again.', type: 'error' });
     } finally {
       setIsCreating(false);
-    setTimeout(() => setNotification({ show: false, message: '' }), 3000);
+      setTimeout(() => setNotification({ show: false, message: '' }), 3000);
     }
   };
 
