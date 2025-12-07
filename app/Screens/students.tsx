@@ -325,6 +325,7 @@ const Students = () => {
   const [deleteModal, setDeleteModal] = useState<{ open: boolean, student?: Student }>({
     open: false,
   });
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // NEW STATE: Detail modal
   const [detailModal, setDetailModal] = useState<{ open: boolean, student?: Student }>({
@@ -751,6 +752,75 @@ const Students = () => {
       setNotification({ show: true, message: 'Network error. Please try again.' });
     } finally {
       setIsCreating(false);
+      setTimeout(() => setNotification({ show: false, message: '' }), 3000);
+    }
+  };
+
+  // Handle delete student
+  const handleDeleteStudent = async () => {
+    if (!deleteModal.student) return;
+
+    if (!token) {
+      setNotification({ show: true, message: 'Authentication required. Please log in.' });
+      setTimeout(() => setNotification({ show: false, message: '' }), 3000);
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`http://localhost:3001/api/students/${deleteModal.student.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      // Handle different error status codes
+      if (response.status === 401) {
+        setNotification({ show: true, message: 'Authentication failed. Please log in again.' });
+        setIsDeleting(false);
+        setTimeout(() => setNotification({ show: false, message: '' }), 3000);
+        return;
+      }
+
+      if (response.status === 400) {
+        setNotification({ show: true, message: 'Invalid student ID format.' });
+        setIsDeleting(false);
+        setTimeout(() => setNotification({ show: false, message: '' }), 3000);
+        return;
+      }
+
+      if (response.status === 403) {
+        setNotification({ show: true, message: 'You do not have permission to delete this student. Only admins can delete any student, and instructors can only delete students they created.' });
+        setIsDeleting(false);
+        setTimeout(() => setNotification({ show: false, message: '' }), 3000);
+        return;
+      }
+
+      if (response.status === 404) {
+        setNotification({ show: true, message: 'Student not found.' });
+        setIsDeleting(false);
+        setTimeout(() => setNotification({ show: false, message: '' }), 3000);
+        return;
+      }
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setNotification({ show: true, message: data.message || t.students.studentDeleted });
+        setDeleteModal({ open: false });
+        
+        // Refresh students list to reflect deletion
+        await fetchStudents(search, pagination.page, pagination.limit);
+      } else {
+        setNotification({ show: true, message: data.message || 'Failed to delete student. Please try again.' });
+      }
+    } catch (error) {
+      console.error('Delete student error:', error);
+      setNotification({ show: true, message: 'Network error. Please try again.' });
+    } finally {
+      setIsDeleting(false);
       setTimeout(() => setNotification({ show: false, message: '' }), 3000);
     }
   };
@@ -2164,17 +2234,23 @@ const Students = () => {
                   </AnimatedText>
               </button>
               <button
-                  className="px-6 py-3 rounded-xl bg-gradient-to-r from-red-600 to-red-800 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 active:scale-95"
-                onClick={() => {
-                  setStudents(students.filter(s => s.id !== deleteModal.student!.id));
-                  setDeleteModal({ open: false });
-                    setNotification({ show: true, message: t.students.studentDeleted });
-                  setTimeout(() => setNotification({ show: false, message: '' }), 2000);
-                }}
+                  className="px-6 py-3 rounded-xl bg-gradient-to-r from-red-600 to-red-800 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={handleDeleteStudent}
+                disabled={isDeleting}
               >
-                  <AnimatedText speed={40}>
-                    {t.students.yes}
-                  </AnimatedText>
+                  {isDeleting ? (
+                    <span className="flex items-center gap-2">
+                      <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Deleting...
+                    </span>
+                  ) : (
+                    <AnimatedText speed={40}>
+                      {t.students.yes}
+                    </AnimatedText>
+                  )}
               </button>
             </div>
           </div>
