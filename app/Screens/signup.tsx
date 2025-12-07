@@ -66,25 +66,55 @@ export default function SignUpPage() {
       // Register user when password slide is submitted
       setIsLoading(true);
       try {
+        // Build request body
+        const requestBody: any = {
+          name: firstName.trim(),
+          surname: lastName.trim(),
+          email: email.trim(),
+          password: password,
+          confirmPassword: confirmPassword,
+          role: 'instructor', // Default role
+        };
+
+        // Note: universityId is optional and not included since we only have university name
+        // If universityId mapping is needed, it would require an API call to get university IDs
+
         const response = await fetch('http://localhost:3001/api/auth/register', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            name: firstName,
-            surname: lastName,
-            email: email,
-            password: password,
-            confirmPassword: confirmPassword,
-            role: 'instructor', // Default role as requested
-          }),
+          body: JSON.stringify(requestBody),
         });
 
         const data = await response.json();
 
-        if (response.ok && data.userId) {
+        // Handle different error status codes
+        if (response.status === 400) {
+          setError(data.message || 'Validation error. Please check your input and try again.');
+          setIsLoading(false);
+          return;
+        }
+
+        if (response.status === 404) {
+          setError('University not found. Please try again.');
+          setIsLoading(false);
+          return;
+        }
+
+        if (response.status === 409) {
+          setError(data.message || 'This email is already registered. Please use a different email address or try logging in.');
+          setIsLoading(false);
+          return;
+        }
+
+        if (response.status === 201 && data.userId) {
           setUserId(data.userId);
+          // Store verification code if provided (development only)
+          if (data.verificationCode) {
+            // Could store this for display or debugging in development
+            console.log('Verification code:', data.verificationCode);
+          }
           // Move to verification slide
           nextSlide();
         } else {
