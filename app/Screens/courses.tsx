@@ -146,6 +146,7 @@ type APICourse = {
 type APICoursesResponse = {
   success: boolean;
   data: APICourse[];
+  message?: string;
   pagination?: {
     page: number;
     limit: number;
@@ -235,7 +236,7 @@ const Courses = () => {
   const [deleteModal, setDeleteModal] = useState<{ open: boolean; course?: Course }>({ open: false });
   const [notification, setNotification] = useState<{ show: boolean; message: string; type?: 'success' | 'error' }>({ show: false, message: '' });
   const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0, totalPages: 0 });
-  const [filters, setFilters] = useState({ instructorId: null as number | null, academicYear: null as string | null, courseCategory: null as string | null });
+  const [filters, setFilters] = useState({ academicYear: null as string | null, courseCategory: null as string | null });
   const buttonRefs = useRef<{ [key: number]: HTMLButtonElement | null }>({});
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -277,9 +278,7 @@ const Courses = () => {
       if (searchTerm.trim()) {
         params.append('search', searchTerm.trim());
       }
-      if (currentFilters.instructorId) {
-        params.append('instructorId', currentFilters.instructorId.toString());
-      }
+      // Note: instructorId filter removed - API automatically filters by authenticated user
       if (currentFilters.academicYear) {
         params.append('academicYear', currentFilters.academicYear);
       }
@@ -294,6 +293,13 @@ const Courses = () => {
           'Content-Type': 'application/json',
         },
       });
+
+      // Handle 401 Unauthorized
+      if (response.status === 401) {
+        setNotification({ show: true, message: 'Authentication failed. Please log in again.', type: 'error' });
+        setIsLoading(false);
+        return;
+      }
 
       const data: APICoursesResponse = await response.json();
 
@@ -392,7 +398,7 @@ const Courses = () => {
       fetchCourses(search, pagination.page, filters, pagination.limit);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, pagination.page, filters.instructorId, filters.academicYear, filters.courseCategory, pagination.limit]);
+  }, [token, pagination.page, filters.academicYear, filters.courseCategory, pagination.limit]);
 
   // Debounced search
   useEffect(() => {

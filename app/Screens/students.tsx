@@ -136,6 +136,7 @@ const Students = () => {
   const [lastName, setLastName] = useState('');
   const [studentNumber, setStudentNumber] = useState('');
   const [email, setEmail] = useState('');
+  const [department, setDepartment] = useState('');
   const [selectedCourseIds, setSelectedCourseIds] = useState<number[]>([]);
   const [focused, setFocused] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'add' | 'list'>('list');
@@ -270,6 +271,15 @@ const Students = () => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [courseDropdownOpen, editCourseDropdownOpen]);
+
+  // Capitalize first letter of each word in department name
+  const capitalizeWords = (str: string): string => {
+    return str
+      .trim()
+      .split(/\s+/)
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  };
 
   // Get status badge styling
   const getStatusBadge = (status: VerificationStatus) => {
@@ -410,6 +420,19 @@ const Students = () => {
       return false;
     }
 
+    // Department validation: required, 2-100 characters
+    const trimmedDepartment = department.trim();
+    if (!trimmedDepartment) {
+      setNotification({ show: true, message: 'Department is required' });
+      setTimeout(() => setNotification({ show: false, message: '' }), 3000);
+      return false;
+    }
+    if (trimmedDepartment.length < 2 || trimmedDepartment.length > 100) {
+      setNotification({ show: true, message: 'Department must be between 2 and 100 characters' });
+      setTimeout(() => setNotification({ show: false, message: '' }), 3000);
+      return false;
+    }
+
     return true;
   };
 
@@ -429,10 +452,14 @@ const Students = () => {
 
     setIsCreating(true);
     try {
+      // Format department with capitalized words
+      const formattedDepartment = capitalizeWords(department);
+      
       const requestBody: any = {
         name: firstName.trim(),
         surname: lastName.trim(),
         studentNumber: studentNumber.trim(),
+        department: formattedDepartment,
       };
 
       // Optional fields
@@ -471,6 +498,7 @@ const Students = () => {
         setLastName('');
         setStudentNumber('');
         setEmail('');
+        setDepartment('');
         setSelectedCourseIds([]);
 
         setNotification({ show: true, message: data.message || t.students.studentAdded });
@@ -744,7 +772,7 @@ const Students = () => {
             }}
           >
             <form onSubmit={handleAddStudent} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               <div className="space-y-2">
                   <label 
                     className="block text-sm font-medium"
@@ -879,6 +907,42 @@ const Students = () => {
                       placeholder={t.students.emailPlaceholder}
                     />
                     {focused === 'email' && (
+                      <div 
+                        className="absolute inset-0 rounded-xl pointer-events-none -z-10 blur-xl transition-opacity duration-300"
+                        style={{
+                          background: 'linear-gradient(to right, rgba(0, 70, 255, 0.2), rgba(0, 27, 183, 0.2))'
+                        }}
+                      />
+                    )}
+                  </div>
+              </div>
+
+              <div className="space-y-2">
+                  <label 
+                    className="block text-sm font-medium"
+                    style={{ color: 'var(--text-secondary)' }}
+                  >
+                    <AnimatedText speed={50}>
+                      {t.students.department}
+                    </AnimatedText>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={department}
+                      onChange={e => setDepartment(e.target.value)}
+                      onFocus={() => setFocused('department')}
+                      onBlur={() => setFocused(null)}
+                      required
+                      className="w-full px-4 py-3.5 rounded-xl border transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-[#0046FF]/50"
+                      style={{
+                        backgroundColor: 'var(--bg-tertiary)',
+                        borderColor: focused === 'department' ? '#0046FF' : 'var(--border-primary)',
+                        color: 'var(--text-primary)'
+                      }}
+                      placeholder={t.students.departmentPlaceholder}
+                    />
+                    {focused === 'department' && (
                       <div 
                         className="absolute inset-0 rounded-xl pointer-events-none -z-10 blur-xl transition-opacity duration-300"
                         style={{
