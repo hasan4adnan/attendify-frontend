@@ -9,7 +9,7 @@ import AnimatedText from '../components/AnimatedText';
 export default function SettingsPage() {
   const { t, language: currentLanguage, setLanguage: setLanguageContext } = useLanguage();
   const { theme: currentTheme, setTheme } = useTheme();
-  const { user, updateUser, updateAvatar } = useUser();
+  const { user, token, updateUser, updateAvatar } = useUser();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Profile state
@@ -117,26 +117,90 @@ export default function SettingsPage() {
       return;
     }
 
+    if (!token) {
+      showToast('Authentication required. Please log in.', 'error');
+      return;
+    }
+
     setSaving(true);
 
     try {
-      const updates: Partial<typeof user> = {
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
-      };
-      
-      if (avatarPreview !== originalAvatar) {
-        if (avatarPreview === null) {
-          updates.avatar = undefined;
-        } else {
-          updates.avatar = avatarPreview;
-        }
+      // Build request body - only include fields that are being updated
+      const requestBody: any = {};
+
+      // Only send fields that have changed
+      if (firstName.trim() !== user?.firstName) {
+        requestBody.name = firstName.trim();
       }
-      
-      updateUser(updates);
-      showToast(t.settings.profileUpdated);
+      if (lastName.trim() !== user?.lastName) {
+        requestBody.surname = lastName.trim();
+      }
+      if (email.trim() && email.trim() !== user?.email) {
+        requestBody.email = email.trim();
+      }
+
+      // Note: role, universityId, and avatar are not part of this endpoint
+      // Avatar would need a separate endpoint if needed
+
+      const response = await fetch('http://localhost:3001/api/settings/profile', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      // Handle different error status codes
+      if (response.status === 401) {
+        showToast('Authentication failed. Please log in again.', 'error');
+        setSaving(false);
+        return;
+      }
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        // Update local user context with the response data
+        if (data.data) {
+          updateUser({
+            firstName: data.data.name,
+            lastName: data.data.surname,
+            email: data.data.email,
+            role: data.data.role,
+            school: data.data.universityName,
+          });
+        }
+
+        // Handle avatar update or removal (local only, not part of API)
+        if (avatarPreview !== originalAvatar) {
+          if (avatarPreview === null) {
+            updateUser({ avatar: undefined });
+          } else {
+            updateUser({ avatar: avatarPreview });
+          }
+        }
+
+        showToast(data.message || t.settings.profileUpdated);
+      } else {
+        // Handle specific error status codes
+        let errorMessage = t.settings.errorUpdating;
+        
+        if (response.status === 400) {
+          errorMessage = data.message || 'Validation error. Please check your input and try again.';
+        } else if (response.status === 404) {
+          errorMessage = 'User or university not found. Please refresh and try again.';
+        } else if (response.status === 409) {
+          errorMessage = data.message || 'This email is already registered. Please use a different email address.';
+        } else if (data.message) {
+          errorMessage = data.message;
+        }
+        
+        showToast(errorMessage, 'error');
+      }
     } catch (error) {
-      showToast(t.settings.errorUpdating, 'error');
+      console.error('Update profile error:', error);
+      showToast('Network error. Please try again.', 'error');
     } finally {
       setSaving(false);
     }

@@ -7,7 +7,7 @@ import AnimatedText from '../components/AnimatedText';
 
 export default function ProfilePage() {
   const { t } = useLanguage();
-  const { user, updateUser, updateAvatar } = useUser();
+  const { user, token, updateUser, updateAvatar } = useUser();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Form state
@@ -123,37 +123,94 @@ export default function ProfilePage() {
       return;
     }
 
+    if (!token) {
+      setNotification({ show: true, message: 'Authentication required. Please log in.', type: 'error' });
+      setTimeout(() => setNotification({ show: false, message: '', type: 'error' }), 3000);
+      return;
+    }
+
     setSaving(true);
 
     try {
-      // Update user profile
-      const updates: Partial<typeof user> = {
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
-        email: email.trim(),
-      };
-      
-      // Handle avatar update or removal
-      // Only update avatar if it has changed
-      if (avatarPreview !== originalAvatar) {
-        if (avatarPreview === null) {
-          // Avatar was removed
-          updates.avatar = undefined;
-        } else {
-          // New avatar was uploaded
-          updates.avatar = avatarPreview;
-        }
+      // Build request body - only include fields that are being updated
+      const requestBody: any = {};
+
+      // Only send fields that have changed or are required
+      if (firstName.trim() !== user?.firstName) {
+        requestBody.name = firstName.trim();
       }
-      
-      updateUser(updates);
+      if (lastName.trim() !== user?.lastName) {
+        requestBody.surname = lastName.trim();
+      }
+      if (email.trim() !== user?.email) {
+        requestBody.email = email.trim();
+      }
 
-      // Mock API call - replace with actual API
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      // Note: role, universityId, and avatar are not part of this endpoint
+      // Avatar would need a separate endpoint if needed
 
-      setNotification({ show: true, message: t.profile.profileUpdated, type: 'success' });
-      setTimeout(() => setNotification({ show: false, message: '', type: 'success' }), 3000);
+      const response = await fetch('http://localhost:3001/api/settings/profile', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      // Handle different error status codes
+      if (response.status === 401) {
+        setNotification({ show: true, message: 'Authentication failed. Please log in again.', type: 'error' });
+        setSaving(false);
+        setTimeout(() => setNotification({ show: false, message: '', type: 'error' }), 3000);
+        return;
+      }
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        // Update local user context with the response data
+        if (data.data) {
+          updateUser({
+            firstName: data.data.name,
+            lastName: data.data.surname,
+            email: data.data.email,
+            role: data.data.role,
+            school: data.data.universityName,
+          });
+        }
+
+        // Handle avatar update or removal (local only, not part of API)
+        if (avatarPreview !== originalAvatar) {
+          if (avatarPreview === null) {
+            updateUser({ avatar: undefined });
+          } else {
+            updateUser({ avatar: avatarPreview });
+          }
+        }
+
+        setNotification({ show: true, message: data.message || t.profile.profileUpdated, type: 'success' });
+        setTimeout(() => setNotification({ show: false, message: '', type: 'success' }), 3000);
+      } else {
+        // Handle specific error status codes
+        let errorMessage = t.profile.errorUpdating;
+        
+        if (response.status === 400) {
+          errorMessage = data.message || 'Validation error. Please check your input and try again.';
+        } else if (response.status === 404) {
+          errorMessage = 'User or university not found. Please refresh and try again.';
+        } else if (response.status === 409) {
+          errorMessage = data.message || 'This email is already registered. Please use a different email address.';
+        } else if (data.message) {
+          errorMessage = data.message;
+        }
+        
+        setNotification({ show: true, message: errorMessage, type: 'error' });
+        setTimeout(() => setNotification({ show: false, message: '', type: 'error' }), 3000);
+      }
     } catch (error) {
-      setNotification({ show: true, message: t.profile.errorUpdating, type: 'error' });
+      console.error('Update profile error:', error);
+      setNotification({ show: true, message: 'Network error. Please try again.', type: 'error' });
       setTimeout(() => setNotification({ show: false, message: '', type: 'error' }), 3000);
     } finally {
       setSaving(false);
