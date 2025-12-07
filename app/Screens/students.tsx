@@ -54,6 +54,7 @@ type APIStudent = {
   studentId: number;
   name: string;
   surname: string;
+  email: string;
   studentNumber: string;
   department?: string | null;
   faceEmbedding?: string | null;
@@ -125,8 +126,8 @@ const mapAPIStudentToStudent = (apiStudent: APIStudent): Student => {
     });
   }
 
-  // Generate email from name and surname
-  const email = `${apiStudent.name.toLowerCase()}.${apiStudent.surname.toLowerCase()}@example.com`;
+  // Use email from API, fallback to generated email if not provided
+  const email = apiStudent.email || `${apiStudent.name.toLowerCase()}.${apiStudent.surname.toLowerCase()}@example.com`;
 
   return {
     id: apiStudent.studentId,

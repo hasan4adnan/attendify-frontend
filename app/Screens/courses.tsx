@@ -63,6 +63,7 @@ type APIStudent = {
   studentId: number;
   name: string;
   surname: string;
+  email: string;
   studentNumber: string;
   department?: string | null;
   faceEmbedding?: string | null;
@@ -89,8 +90,8 @@ type APIStudentsResponse = {
 
 // Map API student to component Student type
 const mapAPIStudentToStudent = (apiStudent: APIStudent): Student => {
-  // Generate email from name and surname if not available
-  const email = `${apiStudent.name.toLowerCase()}.${apiStudent.surname.toLowerCase()}@example.com`;
+  // Use email from API, fallback to generated email if not provided
+  const email = apiStudent.email || `${apiStudent.name.toLowerCase()}.${apiStudent.surname.toLowerCase()}@example.com`;
   
   return {
     id: apiStudent.studentId,
@@ -117,6 +118,7 @@ type APIEnrolledStudent = {
   studentId: number;
   name: string;
   surname: string;
+  email?: string;
   studentNumber: string;
   department?: string;
   enrolledAt?: string;
@@ -209,7 +211,7 @@ const mapAPICourseToCourse = (apiCourse: APICourse): Course => {
     firstName: s.name,
     lastName: s.surname,
     studentNumber: s.studentNumber,
-    email: `${s.name.toLowerCase()}.${s.surname.toLowerCase()}@example.com`, // Fallback email
+    email: s.email || `${s.name.toLowerCase()}.${s.surname.toLowerCase()}@example.com`, // Use API email or fallback
   }));
 
   return {
