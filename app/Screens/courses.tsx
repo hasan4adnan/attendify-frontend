@@ -78,6 +78,7 @@ type APIStudent = {
 type APIStudentsResponse = {
   success: boolean;
   data: APIStudent[];
+  message?: string;
   pagination?: {
     page: number;
     limit: number;
@@ -346,6 +347,13 @@ const Courses = () => {
           'Content-Type': 'application/json',
         },
       });
+
+      // Handle 401 Unauthorized
+      if (response.status === 401) {
+        console.error('Authentication failed when fetching students');
+        setIsLoadingStudents(false);
+        return;
+      }
 
       const data: APIStudentsResponse = await response.json();
 

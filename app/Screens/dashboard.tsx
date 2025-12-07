@@ -29,6 +29,7 @@ type APIStudent = {
 type APIStudentsResponse = {
   success: boolean;
   data: APIStudent[];
+  message?: string;
   pagination?: {
     page: number;
     limit: number;
@@ -64,6 +65,13 @@ export default function DashboardPage() {
         },
       });
 
+      // Handle 401 Unauthorized
+      if (response.status === 401) {
+        console.error('Authentication failed when fetching students count');
+        setIsLoadingStudents(false);
+        return;
+      }
+
       const data: APIStudentsResponse = await response.json();
 
       if (response.ok && data.success) {
@@ -79,6 +87,14 @@ export default function DashboardPage() {
               'Content-Type': 'application/json',
             },
           });
+          
+          // Handle 401 for the second request
+          if (allStudentsResponse.status === 401) {
+            console.error('Authentication failed when fetching all students');
+            setIsLoadingStudents(false);
+            return;
+          }
+          
           const allStudentsData: APIStudentsResponse = await allStudentsResponse.json();
           if (allStudentsResponse.ok && allStudentsData.success) {
             setTotalStudents(allStudentsData.data.length);

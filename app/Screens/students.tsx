@@ -69,6 +69,7 @@ type APIStudent = {
 type APIStudentsResponse = {
   success: boolean;
   data: APIStudent[];
+  message?: string;
   pagination?: {
     page: number;
     limit: number;
@@ -189,6 +190,14 @@ const Students = () => {
           'Content-Type': 'application/json',
         },
       });
+
+      // Handle 401 Unauthorized
+      if (response.status === 401) {
+        setNotification({ show: true, message: 'Authentication failed. Please log in again.' });
+        setTimeout(() => setNotification({ show: false, message: '' }), 3000);
+        setIsLoading(false);
+        return;
+      }
 
       const data: APIStudentsResponse = await response.json();
 
