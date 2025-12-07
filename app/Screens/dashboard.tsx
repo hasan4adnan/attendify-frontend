@@ -111,14 +111,33 @@ export default function DashboardPage() {
             }
           }
         } else {
-          // Instructors: filter by createdBy
-          const filteredStudents = data.data.filter(apiStudent => apiStudent.createdBy === currentUserId);
-          filteredCount = filteredStudents.length;
+          // Instructors: need to fetch all students to count correctly
+          // The initial request with limit=1 might not include the instructor's students
+          const allStudentsResponse = await fetch('http://localhost:3001/api/students?page=1&limit=1000', {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          });
           
-          // If we got a full page but there might be more, we need to fetch all
-          // For now, we'll use the filtered count. The backend should handle pagination correctly.
-          // If pagination total is available and we're on the first page, we might need to fetch all
-          // But for simplicity, we'll just count what we have
+          // Handle 401 for the second request
+          if (allStudentsResponse.status === 401) {
+            console.error('Authentication failed when fetching all students');
+            setIsLoadingStudents(false);
+            return;
+          }
+          
+          const allStudentsData: APIStudentsResponse = await allStudentsResponse.json();
+          if (allStudentsResponse.ok && allStudentsData.success) {
+            // Filter by createdBy to get only this instructor's students
+            const filteredStudents = allStudentsData.data.filter(apiStudent => apiStudent.createdBy === currentUserId);
+            filteredCount = filteredStudents.length;
+          } else {
+            // Fallback: filter the initial response
+            const filteredStudents = data.data.filter(apiStudent => apiStudent.createdBy === currentUserId);
+            filteredCount = filteredStudents.length;
+          }
         }
         
         setTotalStudents(filteredCount);
