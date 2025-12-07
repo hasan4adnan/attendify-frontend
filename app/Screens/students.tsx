@@ -90,6 +90,12 @@ type APIGetStudentResponse = {
   data: APIStudent;
 };
 
+type APIUpdateStudentResponse = {
+  success: boolean;
+  message: string;
+  data: APIStudent;
+};
+
 // Map API student to component Student type
 const mapAPIStudentToStudent = (apiStudent: APIStudent): Student => {
   // Map face scan status
@@ -611,20 +617,142 @@ const Students = () => {
     setOpenMenuId(null);
   };
 
+  // Validate edit form
+  const validateEditForm = (): boolean => {
+    const trimmedName = editFirstName.trim();
+    const trimmedSurname = editLastName.trim();
+    const trimmedStudentNumber = editStudentNumber.trim();
+
+    // Name validation: 2-100 characters
+    if (!trimmedName) {
+      setNotification({ show: true, message: 'First name is required' });
+      setTimeout(() => setNotification({ show: false, message: '' }), 3000);
+      return false;
+    }
+    if (trimmedName.length < 2 || trimmedName.length > 100) {
+      setNotification({ show: true, message: 'First name must be between 2 and 100 characters' });
+      setTimeout(() => setNotification({ show: false, message: '' }), 3000);
+      return false;
+    }
+
+    // Surname validation: 2-100 characters
+    if (!trimmedSurname) {
+      setNotification({ show: true, message: 'Surname is required' });
+      setTimeout(() => setNotification({ show: false, message: '' }), 3000);
+      return false;
+    }
+    if (trimmedSurname.length < 2 || trimmedSurname.length > 100) {
+      setNotification({ show: true, message: 'Surname must be between 2 and 100 characters' });
+      setTimeout(() => setNotification({ show: false, message: '' }), 3000);
+      return false;
+    }
+
+    // Student number validation: 3-50 characters
+    if (!trimmedStudentNumber) {
+      setNotification({ show: true, message: 'Student number is required' });
+      setTimeout(() => setNotification({ show: false, message: '' }), 3000);
+      return false;
+    }
+    if (trimmedStudentNumber.length < 3 || trimmedStudentNumber.length > 50) {
+      setNotification({ show: true, message: 'Student number must be between 3 and 50 characters' });
+      setTimeout(() => setNotification({ show: false, message: '' }), 3000);
+      return false;
+    }
+
+    return true;
+  };
+
   // Save Edit
-  const handleEditSave = () => {
+  const handleEditSave = async () => {
     if (!editModal.student) return;
 
-    setStudents(students.map(s =>
-      s.id === editModal.student!.id
-        ? { ...s, firstName: editFirstName, lastName: editLastName, studentNumber: editStudentNumber, email: editEmail, courseIds: editCourseIds }
-        : s
-    ));
+    if (!validateEditForm()) {
+      return;
+    }
 
-    setEditModal({ open: false });
+    if (!token) {
+      setNotification({ show: true, message: 'Authentication required. Please log in.' });
+      setTimeout(() => setNotification({ show: false, message: '' }), 3000);
+      return;
+    }
 
-    setNotification({ show: true, message: t.students.studentUpdated });
-    setTimeout(() => setNotification({ show: false, message: '' }), 2000);
+    setIsCreating(true);
+    try {
+      // Build request body - only include fields that are being updated
+      const requestBody: any = {
+        name: editFirstName.trim(),
+        surname: editLastName.trim(),
+        studentNumber: editStudentNumber.trim(),
+      };
+
+      // Add courseIds if any are selected (replaces all existing associations)
+      if (editCourseIds.length > 0) {
+        requestBody.courseIds = editCourseIds;
+      } else {
+        // If no courses selected, send empty array to clear all associations
+        requestBody.courseIds = [];
+      }
+
+      // Note: universityId, faceEmbedding, photoPath, and createdBy are not included
+      // - universityId cannot be changed by non-admins
+      // - createdBy cannot be changed by non-admins
+      // - faceEmbedding and photoPath are not part of the edit form
+
+      const response = await fetch(`http://localhost:3001/api/students/${editModal.student.id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      // Handle different error status codes
+      if (response.status === 401) {
+        setNotification({ show: true, message: 'Authentication failed. Please log in again.' });
+        setIsCreating(false);
+        setTimeout(() => setNotification({ show: false, message: '' }), 3000);
+        return;
+      }
+
+      if (response.status === 403) {
+        setNotification({ show: true, message: 'You do not have permission to update this student. Only admins can update any student, and instructors can only update students they created.' });
+        setIsCreating(false);
+        setTimeout(() => setNotification({ show: false, message: '' }), 3000);
+        return;
+      }
+
+      const data: APIUpdateStudentResponse = await response.json();
+
+      if (response.ok && data.success) {
+        setNotification({ show: true, message: data.message || t.students.studentUpdated });
+        setEditModal({ open: false });
+        
+        // Refresh students list to get updated data
+        await fetchStudents(search, pagination.page, pagination.limit);
+      } else {
+        // Handle specific error status codes
+        let errorMessage = 'Failed to update student. Please try again.';
+        
+        if (response.status === 400) {
+          errorMessage = data.message || 'Validation error. Please check your input and try again.';
+        } else if (response.status === 404) {
+          errorMessage = 'Student or one or more selected courses were not found. Please refresh and try again.';
+        } else if (response.status === 409) {
+          errorMessage = data.message || 'A student with this student number already exists in your university. Please use a different student number.';
+        } else if (data.message) {
+          errorMessage = data.message;
+        }
+        
+        setNotification({ show: true, message: errorMessage });
+      }
+    } catch (error) {
+      console.error('Update student error:', error);
+      setNotification({ show: true, message: 'Network error. Please try again.' });
+    } finally {
+      setIsCreating(false);
+      setTimeout(() => setNotification({ show: false, message: '' }), 3000);
+    }
   };
 
   // Handle attendance toggle for today
