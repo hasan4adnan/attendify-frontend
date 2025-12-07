@@ -225,17 +225,64 @@ export default function SettingsPage() {
       return;
     }
 
+    if (!token) {
+      showToast('Authentication required. Please log in.', 'error');
+      return;
+    }
+
     setUpdatingPassword(true);
 
     try {
-      // Mock API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
-      showToast(t.settings.passwordUpdated);
+      const requestBody = {
+        currentPassword: currentPassword,
+        newPassword: newPassword,
+        confirmNewPassword: confirmPassword,
+      };
+
+      const response = await fetch('http://localhost:3001/api/settings/password', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      // Handle different error status codes
+      if (response.status === 401) {
+        showToast('Authentication failed or current password is incorrect. Please try again.', 'error');
+        setUpdatingPassword(false);
+        return;
+      }
+
+      if (response.status === 404) {
+        showToast('User not found. Please refresh and try again.', 'error');
+        setUpdatingPassword(false);
+        return;
+      }
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+        showToast(data.message || t.settings.passwordUpdated);
+      } else {
+        // Handle validation errors (400)
+        let errorMessage = t.settings.errorUpdating;
+        
+        if (response.status === 400) {
+          errorMessage = data.message || 'Validation error. Please check that passwords match and new password is at least 8 characters.';
+        } else if (data.message) {
+          errorMessage = data.message;
+        }
+        
+        showToast(errorMessage, 'error');
+      }
     } catch (error) {
-      showToast(t.settings.errorUpdating, 'error');
+      console.error('Update password error:', error);
+      showToast('Network error. Please try again.', 'error');
     } finally {
       setUpdatingPassword(false);
     }

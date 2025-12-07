@@ -226,21 +226,71 @@ export default function ProfilePage() {
       return;
     }
 
+    if (!token) {
+      setNotification({ show: true, message: 'Authentication required. Please log in.', type: 'error' });
+      setTimeout(() => setNotification({ show: false, message: '', type: 'error' }), 3000);
+      return;
+    }
+
     setSaving(true);
 
     try {
-      // Mock API call - replace with actual API
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      const requestBody = {
+        currentPassword: currentPassword,
+        newPassword: newPassword,
+        confirmNewPassword: confirmPassword,
+      };
 
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
-      setShowPasswordSection(false);
+      const response = await fetch('http://localhost:3001/api/settings/password', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
 
-      setNotification({ show: true, message: t.profile.passwordUpdated, type: 'success' });
-      setTimeout(() => setNotification({ show: false, message: '', type: 'success' }), 3000);
+      // Handle different error status codes
+      if (response.status === 401) {
+        setNotification({ show: true, message: 'Authentication failed or current password is incorrect. Please try again.', type: 'error' });
+        setSaving(false);
+        setTimeout(() => setNotification({ show: false, message: '', type: 'error' }), 3000);
+        return;
+      }
+
+      if (response.status === 404) {
+        setNotification({ show: true, message: 'User not found. Please refresh and try again.', type: 'error' });
+        setSaving(false);
+        setTimeout(() => setNotification({ show: false, message: '', type: 'error' }), 3000);
+        return;
+      }
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+        setShowPasswordSection(false);
+
+        setNotification({ show: true, message: data.message || t.profile.passwordUpdated, type: 'success' });
+        setTimeout(() => setNotification({ show: false, message: '', type: 'success' }), 3000);
+      } else {
+        // Handle validation errors (400)
+        let errorMessage = t.profile.errorUpdating;
+        
+        if (response.status === 400) {
+          errorMessage = data.message || 'Validation error. Please check that passwords match and new password is at least 8 characters.';
+        } else if (data.message) {
+          errorMessage = data.message;
+        }
+        
+        setNotification({ show: true, message: errorMessage, type: 'error' });
+        setTimeout(() => setNotification({ show: false, message: '', type: 'error' }), 3000);
+      }
     } catch (error) {
-      setNotification({ show: true, message: t.profile.errorUpdating, type: 'error' });
+      console.error('Update password error:', error);
+      setNotification({ show: true, message: 'Network error. Please try again.', type: 'error' });
       setTimeout(() => setNotification({ show: false, message: '', type: 'error' }), 3000);
     } finally {
       setSaving(false);
