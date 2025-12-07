@@ -59,8 +59,8 @@ type APIStudent = {
   faceEmbedding?: string | null;
   photoPath?: string | null;
   faceScanStatus: 'Verified' | 'Not Verified';
-  courses: string;
-  coursesFull: APIStudentCourse[];
+  courses: string | APIStudentCourse[]; // String for list endpoint, array for single student endpoint
+  coursesFull?: APIStudentCourse[]; // Only present in list endpoint
   attendance: APIStudentAttendance;
   createdBy?: number | null;
   createdAt: string;
@@ -84,6 +84,12 @@ type APICreateStudentResponse = {
   data: APIStudent;
 };
 
+type APIGetStudentResponse = {
+  success: boolean;
+  message?: string;
+  data: APIStudent;
+};
+
 // Map API student to component Student type
 const mapAPIStudentToStudent = (apiStudent: APIStudent): Student => {
   // Map face scan status
@@ -94,8 +100,10 @@ const mapAPIStudentToStudent = (apiStudent: APIStudent): Student => {
     verificationStatus = 'notVerified';
   }
 
-  // Map course IDs
-  const courseIds = apiStudent.coursesFull.map(c => c.course_id);
+  // Map course IDs - handle both list and single student endpoint formats
+  const courseIds = Array.isArray(apiStudent.courses)
+    ? apiStudent.courses.map(c => c.course_id)
+    : (apiStudent.coursesFull || []).map(c => c.course_id);
 
   // Map attendance records (simplified - API provides today's attendance status)
   const attendance: AttendanceRecord[] = [];
@@ -220,6 +228,57 @@ const Students = () => {
     }
   }, [token]);
 
+  // Fetch single student by ID
+  const fetchStudentById = useCallback(async (studentId: number): Promise<Student | null> => {
+    if (!token) {
+      return null;
+    }
+
+    try {
+      const response = await fetch(`http://localhost:3001/api/students/${studentId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      // Handle different error status codes
+      if (response.status === 401) {
+        setNotification({ show: true, message: 'Authentication failed. Please log in again.' });
+        setTimeout(() => setNotification({ show: false, message: '' }), 3000);
+        return null;
+      }
+
+      if (response.status === 400) {
+        setNotification({ show: true, message: 'Invalid student ID format.' });
+        setTimeout(() => setNotification({ show: false, message: '' }), 3000);
+        return null;
+      }
+
+      if (response.status === 404) {
+        setNotification({ show: true, message: 'Student not found.' });
+        setTimeout(() => setNotification({ show: false, message: '' }), 3000);
+        return null;
+      }
+
+      const data: APIGetStudentResponse = await response.json();
+
+      if (response.ok && data.success) {
+        return mapAPIStudentToStudent(data.data);
+      } else {
+        setNotification({ show: true, message: data.message || 'Failed to fetch student details' });
+        setTimeout(() => setNotification({ show: false, message: '' }), 3000);
+        return null;
+      }
+    } catch (error) {
+      console.error('Fetch student by ID error:', error);
+      setNotification({ show: true, message: 'Network error. Please try again.' });
+      setTimeout(() => setNotification({ show: false, message: '' }), 3000);
+      return null;
+    }
+  }, [token]);
+
   // Fetch students on mount
   useEffect(() => {
     if (token) {
@@ -265,6 +324,7 @@ const Students = () => {
   const [detailModal, setDetailModal] = useState<{ open: boolean, student?: Student }>({
     open: false,
   });
+  const [isLoadingStudentDetail, setIsLoadingStudentDetail] = useState(false);
 
   // Close dropdown when clicking outside
   useEffect(() => {
