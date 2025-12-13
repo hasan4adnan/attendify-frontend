@@ -37,6 +37,7 @@ type Course = {
   year?: string;
   category?: string;
   instructor?: string;
+  instructorId?: number;
 };
 
 // API Response Types for Students
@@ -99,6 +100,16 @@ const mapAPIStudentToStudent = (apiStudent: APIStudent): Student => {
     lastName: apiStudent.surname,
     studentNumber: apiStudent.studentNumber,
     email: email,
+  };
+};
+
+// Map API instructor to component Instructor type
+const mapAPIInstructorToInstructor = (apiInstructor: APIInstructor): Instructor => {
+  return {
+    id: apiInstructor.id,
+    firstName: apiInstructor.name,
+    lastName: apiInstructor.surname,
+    email: apiInstructor.email,
   };
 };
 
@@ -228,6 +239,7 @@ const mapAPICourseToCourse = (apiCourse: APICourse): Course => {
     year: apiCourse.academicYear,
     category: apiCourse.courseCategory,
     instructor: apiCourse.instructor ? `${apiCourse.instructor.name} ${apiCourse.instructor.surname}` : undefined,
+    instructorId: apiCourse.instructorId || apiCourse.instructor?.instructorId,
   };
 };
 
@@ -260,7 +272,7 @@ const Courses = () => {
   const [semester, setSemester] = useState('');
   const [year, setYear] = useState('');
   const [category, setCategory] = useState('');
-  const [instructor, setInstructor] = useState('');
+  const [selectedInstructorId, setSelectedInstructorId] = useState<number | null>(null);
   const [focused, setFocused] = useState<string | null>(null);
   const [studentDropdownOpen, setStudentDropdownOpen] = useState(false);
   const [studentSearch, setStudentSearch] = useState('');
@@ -269,6 +281,8 @@ const Courses = () => {
   const [studentsPagination, setStudentsPagination] = useState({ page: 1, limit: 100, total: 0, totalPages: 0 });
   const studentDropdownRef = useRef<HTMLDivElement>(null);
   const studentsSearchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [instructorDropdownOpen, setInstructorDropdownOpen] = useState(false);
+  const instructorDropdownRef = useRef<HTMLDivElement>(null);
 
   // Fetch courses from API
   const fetchCourses = useCallback(async (searchTerm: string = '', page: number = 1, currentFilters = filters, currentLimit = pagination.limit) => {
@@ -390,12 +404,20 @@ const Courses = () => {
     }
   }, [token, user]);
 
+
   // Fetch students on mount
   useEffect(() => {
     if (token) {
       fetchStudents('', 1, 100); // Fetch first 100 students
     }
   }, [token, fetchStudents]);
+
+  // Set current user as selected instructor on mount
+  useEffect(() => {
+    if (user && user.id) {
+      setSelectedInstructorId(parseInt(user.id, 10));
+    }
+  }, [user]);
 
   // Debounced student search
   useEffect(() => {
@@ -416,6 +438,7 @@ const Courses = () => {
       }
     };
   }, [studentSearch, token, fetchStudents]);
+
 
   // Fetch courses on mount and when filters/pagination change
   useEffect(() => {
@@ -452,16 +475,19 @@ const Courses = () => {
       if (studentDropdownRef.current && !studentDropdownRef.current.contains(event.target as Node)) {
         setStudentDropdownOpen(false);
       }
+      if (instructorDropdownRef.current && !instructorDropdownRef.current.contains(event.target as Node)) {
+        setInstructorDropdownOpen(false);
+      }
     };
 
-    if (studentDropdownOpen) {
+    if (studentDropdownOpen || instructorDropdownOpen) {
       document.addEventListener('mousedown', handleClickOutside);
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [studentDropdownOpen]);
+  }, [studentDropdownOpen, instructorDropdownOpen]);
 
   // Format schedule summary
   const formatScheduleSummary = (schedule: ScheduleEntry[]): string => {
@@ -522,6 +548,14 @@ const Courses = () => {
       s.email.toLowerCase().includes(studentSearch.toLowerCase())
   );
 
+  // Get current user as instructor option
+  const currentUserInstructor = user ? {
+    id: parseInt(user.id, 10),
+    firstName: user.firstName,
+    lastName: user.lastName,
+    fullName: `${user.firstName} ${user.lastName}`
+  } : null;
+
   // Reset form
   const resetForm = () => {
     setCourseName('');
@@ -534,7 +568,12 @@ const Courses = () => {
     setSemester('');
     setYear('');
     setCategory('');
-    setInstructor('');
+    // Reset to current user
+    if (user && user.id) {
+      setSelectedInstructorId(parseInt(user.id, 10));
+    } else {
+      setSelectedInstructorId(null);
+    }
     setStudentSearch('');
   };
 
@@ -550,7 +589,14 @@ const Courses = () => {
     setSemester(course.semester || '');
     setYear(course.year || '');
     setCategory(course.category || '');
-    setInstructor(course.instructor || '');
+    // Use instructorId if available, otherwise use current user
+    if (course.instructorId) {
+      setSelectedInstructorId(course.instructorId);
+    } else if (user && user.id) {
+      setSelectedInstructorId(parseInt(user.id, 10));
+    } else {
+      setSelectedInstructorId(null);
+    }
     setEditModal({ open: true, course });
     setActiveTab('add');
     setOpenMenuId(null);
@@ -679,6 +725,9 @@ const Courses = () => {
         if (category) {
           requestBody.courseCategory = category;
         }
+        if (selectedInstructorId) {
+          requestBody.instructorId = selectedInstructorId;
+        }
         if (schedule.length > 0) {
           requestBody.schedule = schedule.map((s) => ({
             day: mapDayToAPI(s.day),
@@ -770,6 +819,9 @@ const Courses = () => {
       }
       if (category) {
         requestBody.courseCategory = category;
+      }
+      if (selectedInstructorId) {
+        requestBody.instructorId = selectedInstructorId;
       }
       if (selectedStudents.length > 0) {
         requestBody.studentIds = selectedStudents;
@@ -1475,21 +1527,77 @@ const Courses = () => {
                   <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
                     {t.courses.instructor}
                   </label>
-                  <input
-                    type="text"
-                    value={instructor}
-                    onChange={(e) => setInstructor(e.target.value)}
-                    onFocus={() => setFocused('instructor')}
-                    onBlur={() => setFocused(null)}
-                    placeholder={t.courses.instructorPlaceholder}
-                    className="w-full px-4 py-3 rounded-xl transition-all duration-300"
-                    style={{
-                      backgroundColor: focused === 'instructor' ? 'var(--bg-tertiary)' : 'var(--bg-primary)',
-                      border: `1px solid ${focused === 'instructor' ? 'var(--border-secondary)' : 'var(--border-primary)'}`,
-                      color: 'var(--text-primary)',
-                      outline: 'none',
-                    }}
-                  />
+                  <div className="relative" ref={instructorDropdownRef}>
+                    <button
+                      type="button"
+                      onClick={() => currentUserInstructor && setInstructorDropdownOpen(!instructorDropdownOpen)}
+                      disabled={!currentUserInstructor}
+                      className="w-full px-4 py-3 rounded-xl transition-all duration-300 text-left flex items-center justify-between disabled:opacity-50 disabled:cursor-not-allowed"
+                      style={{
+                        backgroundColor: instructorDropdownOpen ? 'var(--bg-tertiary)' : 'var(--bg-primary)',
+                        border: `1px solid ${instructorDropdownOpen ? 'var(--border-secondary)' : 'var(--border-primary)'}`,
+                        color: 'var(--text-primary)',
+                      }}
+                    >
+                      <span>
+                        {currentUserInstructor
+                          ? currentUserInstructor.fullName
+                          : t.courses.instructorPlaceholder || 'Select instructor'}
+                      </span>
+                      <svg
+                        className={`w-5 h-5 transition-transform duration-300 ${instructorDropdownOpen ? 'rotate-180' : ''}`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                    {instructorDropdownOpen && currentUserInstructor && (
+                      <div
+                        className="absolute z-50 w-full mt-2 rounded-xl border"
+                        style={{
+                          backgroundColor: '#1e1e2d',
+                          borderColor: '#2A2A3B',
+                          backdropFilter: 'none',
+                          opacity: 1,
+                        }}
+                      >
+                        <div className="p-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedInstructorId(currentUserInstructor.id);
+                              setInstructorDropdownOpen(false);
+                            }}
+                            className="w-full text-left flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors"
+                            style={{ backgroundColor: '#1e1e2d', opacity: 1 }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = '#2A2A3B';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = '#1e1e2d';
+                            }}
+                          >
+                            <div
+                              className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
+                                selectedInstructorId === currentUserInstructor.id ? 'bg-[#0046FF] border-[#0046FF]' : 'border-[#2A2A3B]'
+                              }`}
+                            >
+                              {selectedInstructorId === currentUserInstructor.id && (
+                                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                </svg>
+                              )}
+                            </div>
+                            <span style={{ color: '#E4E4E7', opacity: 1 }}>
+                              {currentUserInstructor.fullName}
+                            </span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 

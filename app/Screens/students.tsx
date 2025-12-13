@@ -97,6 +97,15 @@ type APIUpdateStudentResponse = {
   data: APIStudent;
 };
 
+// Department options
+const DEPARTMENT_OPTIONS = [
+  'Software Engineering',
+  'Computer Engineering',
+  'Electrical Engineering',
+  'Industrial Engineering',
+  'Civil Engineering',
+];
+
 // Map API student to component Student type
 const mapAPIStudentToStudent = (apiStudent: APIStudent): Student => {
   // Map face scan status
@@ -1226,21 +1235,39 @@ const Students = () => {
                     </AnimatedText>
                   </label>
                   <div className="relative">
-                    <input
-                      type="text"
+                    <select
                       value={department}
                       onChange={e => setDepartment(e.target.value)}
                       onFocus={() => setFocused('department')}
                       onBlur={() => setFocused(null)}
                       required
-                      className="w-full px-4 py-3.5 rounded-xl border transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-[#0046FF]/50"
+                      className="w-full px-4 py-3.5 rounded-xl border transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-[#0046FF]/50 appearance-none cursor-pointer"
                       style={{
                         backgroundColor: 'var(--bg-tertiary)',
                         borderColor: focused === 'department' ? '#0046FF' : 'var(--border-primary)',
                         color: 'var(--text-primary)'
                       }}
-                      placeholder={t.students.departmentPlaceholder}
-                    />
+                    >
+                      <option value="">{t.students.departmentPlaceholder || 'Select department'}</option>
+                      {DEPARTMENT_OPTIONS.map((dept) => (
+                        <option key={dept} value={dept} style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}>
+                          {dept}
+                        </option>
+                      ))}
+                    </select>
+                    <div 
+                      className="absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none"
+                      style={{ color: 'var(--text-primary)' }}
+                    >
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
                     {focused === 'department' && (
                       <div 
                         className="absolute inset-0 rounded-xl pointer-events-none -z-10 blur-xl transition-opacity duration-300"
